@@ -136,7 +136,7 @@ Trích xuất các trường nghiệm thu từ TC04, đồng bộ với artifact
 - [x] Test suite đạt **5/5** và lưu `docs/trace_waterfall.json`.
 - [x] Đã kiểm tra chế độ hội thoại `src/app.py --interactive` khởi động và thoát an toàn.
 - [x] Dashboard hiển thị khay 48 giếng, console, quick prompts, waterfall timeline và one-click test runner.
-- [ ] Commit và push lên GitHub cá nhân (bước nộp bài do chủ repository thực hiện).
+- [x] Đã commit và push mã nguồn nghiệm thu lên nhánh `main` của GitHub cá nhân.
 
 ---
 
@@ -148,5 +148,6 @@ Hệ thống đáp ứng đầy đủ mục tiêu Lab 3: phân biệt phản h�
 
 - **Repository:** <https://github.com/Dang-Huy1910/K4B-Day03-Lab-Chatbot-vs-ReAct-Agent-MCP>
 - **Nhánh nộp bài:** `main`
+- **Commit nghiệm thu:** `c48c916` — `feat: complete LIMS extraction ReAct agent lab`
 - **Trạng thái source code:** Đã hoàn thiện và nghiệm thu 5/5 test cases.
 - **Thao tác cuối trên VLearn:** Dán URL repository ở trên vào ô nộp bài.
