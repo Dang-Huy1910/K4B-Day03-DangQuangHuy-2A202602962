@@ -86,6 +86,37 @@ def _completed_samples() -> list[Dict[str, Any]]:
     return samples
 
 
+def _in_progress_samples() -> list[Dict[str, Any]]:
+    """Build a mixed-state 24-sample tray for the operational dashboard."""
+    samples = [
+        {"sample_id": "SMP-101", "well": "A1", "yield_ng_ul": 45.2, "status": "PASSED", "sample_type": "Blood"},
+        {"sample_id": "SMP-102", "well": "A2", "yield_ng_ul": 4.8, "status": "LOW_YIELD", "sample_type": "Saliva"},
+        {"sample_id": "SMP-103", "well": "A3", "yield_ng_ul": 52.0, "status": "PASSED", "sample_type": "Tissue"},
+        {"sample_id": "SMP-104", "well": "A4", "yield_ng_ul": 38.6, "status": "PASSED", "sample_type": "Swab"},
+        {"sample_id": "SMP-105", "well": "A5", "yield_ng_ul": 26.4, "status": "PASSED", "sample_type": "Plasma"},
+        {"sample_id": "SMP-106", "well": "A6", "yield_ng_ul": 31.8, "status": "PASSED", "sample_type": "Serum"},
+        {"sample_id": "SMP-107", "well": "A7", "yield_ng_ul": 14.6, "status": "PASSED", "sample_type": "Swab"},
+        {"sample_id": "SMP-108", "well": "A8", "yield_ng_ul": 7.3, "status": "LOW_YIELD", "sample_type": "Blood"},
+        {"sample_id": "SMP-109", "well": "B1", "yield_ng_ul": 22.7, "status": "PASSED", "sample_type": "Tissue"},
+        {"sample_id": "SMP-110", "well": "B2", "yield_ng_ul": 41.5, "status": "PASSED", "sample_type": "Plasma"},
+        {"sample_id": "SMP-111", "well": "B3", "yield_ng_ul": 16.2, "status": "FAILED", "sample_type": "Saliva", "failure_reason": "Phát hiện nhiễm chéo tại giếng B3", "failed_by": DEFAULT_OPERATOR},
+        {"sample_id": "SMP-112", "well": "B4", "yield_ng_ul": 29.9, "status": "PASSED", "sample_type": "Swab"},
+        {"sample_id": "SMP-113", "well": "B5", "yield_ng_ul": 35.6, "status": "PASSED", "sample_type": "Blood"},
+        {"sample_id": "SMP-114", "well": "B6", "yield_ng_ul": 12.8, "status": "PASSED", "sample_type": "Saliva"},
+        {"sample_id": "SMP-115", "well": "B7", "yield_ng_ul": 8.9, "status": "LOW_YIELD", "sample_type": "Tissue"},
+        {"sample_id": "SMP-116", "well": "B8", "yield_ng_ul": 47.3, "status": "PASSED", "sample_type": "Blood"},
+        {"sample_id": "SMP-117", "well": "C1", "yield_ng_ul": 19.5, "status": "PASSED", "sample_type": "Serum"},
+        {"sample_id": "SMP-118", "well": "C2", "yield_ng_ul": 33.1, "status": "PASSED", "sample_type": "Swab"},
+        {"sample_id": "SMP-119", "well": "C3", "yield_ng_ul": 2.1, "status": "FAILED", "sample_type": "Plasma", "failure_reason": "Mất thể tích mẫu trong bước rửa cột", "failed_by": DEFAULT_OPERATOR},
+        {"sample_id": "SMP-120", "well": "C4", "yield_ng_ul": 27.6, "status": "PASSED", "sample_type": "Tissue"},
+        {"sample_id": "SMP-121", "well": "C5", "yield_ng_ul": 44.0, "status": "PASSED", "sample_type": "Blood"},
+        {"sample_id": "SMP-122", "well": "C6", "yield_ng_ul": 6.4, "status": "LOW_YIELD", "sample_type": "Saliva"},
+        {"sample_id": "SMP-123", "well": "C7", "yield_ng_ul": 18.8, "status": "PASSED", "sample_type": "Swab"},
+        {"sample_id": "SMP-124", "well": "C8", "yield_ng_ul": 55.7, "status": "PASSED", "sample_type": "Tissue"},
+    ]
+    return samples
+
+
 _INITIAL_DATABASE: Dict[str, Dict[str, Any]] = {
     "LOT-EXT-2026-01": {
         "lot_id": "LOT-EXT-2026-01",
@@ -94,12 +125,7 @@ _INITIAL_DATABASE: Dict[str, Dict[str, Any]] = {
         "status": "IN_PROGRESS",
         "capacity": 48,
         "started_at": "2026-09-13T08:30:00+07:00",
-        "samples": [
-            {"sample_id": "SMP-101", "well": "A1", "yield_ng_ul": 45.2, "status": "PASSED", "sample_type": "Blood"},
-            {"sample_id": "SMP-102", "well": "A2", "yield_ng_ul": 4.8, "status": "LOW_YIELD", "sample_type": "Saliva"},
-            {"sample_id": "SMP-103", "well": "A3", "yield_ng_ul": 52.0, "status": "PASSED", "sample_type": "Tissue"},
-            {"sample_id": "SMP-104", "well": "A4", "yield_ng_ul": 38.6, "status": "PASSED", "sample_type": "Swab"},
-        ],
+        "samples": _in_progress_samples(),
     },
     "LOT-EXT-2026-02": {
         "lot_id": "LOT-EXT-2026-02",
