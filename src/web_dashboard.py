@@ -123,7 +123,7 @@ DASHBOARD_HTML = r'''<!doctype html>
     .inspect-sub { color:var(--muted); font-size:11px; margin-top:4px; }
     .status-text { font:600 11px JetBrains Mono,monospace; }
     .passed-text { color:var(--emerald); } .failed-text { color:var(--rose); } .low_yield-text { color:var(--amber); }
-    .chat-panel { position:sticky; top:16px; }
+    .chat-panel { position:static; align-self:start; }
     .chat-stream { height:330px; overflow-y:auto; padding:18px; border-bottom:1px solid var(--line); background:#F7FAFC; scroll-behavior:smooth; }
     .message { display:flex; align-items:flex-end; gap:8px; margin-bottom:16px; animation:messageIn 220ms var(--ease); }
     .message.user { justify-content:flex-end; }
@@ -160,6 +160,7 @@ DASHBOARD_HTML = r'''<!doctype html>
     .button-secondary:hover { background:#EAF2F5; border-color:rgba(8,127,149,.25); }
     .suite { padding:16px 18px 18px; border-top:1px solid var(--line); }
     .suite-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:11px; }
+    .suite-description { margin-top:3px; color:var(--muted); font-size:10px; line-height:1.45; }
     .progress-track { height:4px; border-radius:4px; overflow:hidden; background:#DDE8EC; }
     .progress-fill { height:100%; width:0; background:var(--emerald); box-shadow:0 0 7px rgba(11,149,111,.25); transition:width 300ms var(--ease); }
     .suite-results { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:12px; }
@@ -187,7 +188,7 @@ DASHBOARD_HTML = r'''<!doctype html>
     .latency { color:var(--muted); font:500 10px JetBrains Mono,monospace; font-variant-numeric:tabular-nums; }
     .toast { position:fixed; right:24px; bottom:24px; max-width:360px; padding:12px 15px; border:1px solid var(--line-strong); border-radius:10px; background:#FFFFFF; box-shadow:0 16px 40px rgba(31,75,91,.16); transform:translateY(20px); opacity:0; pointer-events:none; transition:all 220ms var(--ease); }
     .toast.show { transform:none; opacity:1; }
-    @media (max-width:1000px) { .workspace { grid-template-columns:1fr; } .trace { grid-column:auto; } .metrics { grid-template-columns:repeat(2,1fr); } .chat-panel { position:static; } }
+    @media (max-width:1000px) { .workspace { grid-template-columns:1fr; } .trace { grid-column:auto; } .metrics { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:620px) { .shell { width:calc(100% - 24px); padding-top:14px; } .hero { display:block; } .operator { text-align:left; margin-top:15px; } .metrics { grid-template-columns:1fr 1fr; } .metric { min-height:96px; padding:14px; } .plate-wrap { padding:14px; } .plate-frame { padding:26px 16px 18px 25px; border-radius:20px; } .plate-grid { grid-template-columns:repeat(8,minmax(25px,1fr)); gap:6px; } .legend { display:none; } .topbar .live span:last-child { display:none; } }
   </style>
 </head>
@@ -215,7 +216,7 @@ DASHBOARD_HTML = r'''<!doctype html>
           <div class="message assistant"><div class="avatar">AI</div><div class="message-stack"><div class="bubble">Xin chào Kỹ thuật viên. Tôi có thể tra cứu lô, kiểm tra DNA yield và xử lý mẫu không đạt SOP qua MCP.</div><div class="message-meta">LIMS AGENT · READY</div></div></div>
         </div>
         <div class="console-body"><label class="label" for="query">Tin nhắn cho tác tử</label><textarea id="query" placeholder="Ví dụ: Kiểm tra LOT-EXT-2026-01 và đánh dấu mẫu dưới 10 ng/µL…"></textarea><div class="quick" id="quickPrompts"></div><div class="actions"><button class="button button-primary" id="sendBtn">Gửi yêu cầu ↗</button><button class="button button-secondary" id="resetBtn" title="Khôi phục dữ liệu mock">Reset</button></div></div>
-        <div class="suite"><div class="suite-head"><span class="label">Acceptance suite</span><span class="latency" id="suiteScore">0 / 5</span></div><div class="progress-track"><div class="progress-fill" id="progress"></div></div><div class="suite-results" id="suiteResults"></div><button class="button button-secondary" id="suiteBtn" style="width:100%;margin-top:12px">Run all five test cases</button></div>
+        <div class="suite"><div class="suite-head"><div><div class="label">Bộ kiểm thử nghiệm thu</div><div class="suite-description">Tự động kiểm tra 5 tình huống TC01–TC05 và cách Agent chọn công cụ.</div></div><span class="latency" id="suiteScore">0 / 5</span></div><div class="progress-track"><div class="progress-fill" id="progress"></div></div><div class="suite-results" id="suiteResults"></div><button class="button button-secondary" id="suiteBtn" style="width:100%;margin-top:12px">Chạy 5 kịch bản kiểm thử</button></div>
       </aside>
       <article class="panel trace"><header class="panel-head"><div><div class="panel-title">ReAct Waterfall Trace</div><div class="panel-kicker">Execution only · Thought → Action → Observation → Delivery</div></div><div class="trace-tools"><button class="icon-button" id="refreshBtn" title="Refresh trace">↻</button><button class="icon-button" id="copyBtn" title="Copy trace JSON">⧉</button></div></header><div class="timeline" id="timeline"></div></article>
     </section>
@@ -291,7 +292,7 @@ DASHBOARD_HTML = r'''<!doctype html>
         el('agentTyping')?.remove(); addMessage('assistant',`Không thể hoàn tất yêu cầu: ${e.message}`,{meta:'ERROR'}); toast(e.message);
       } finally { el('sendBtn').disabled=false; el('sendBtn').textContent='Gửi yêu cầu ↗'; }
     };
-    el('suiteBtn').onclick=async()=>{el('suiteBtn').disabled=true;el('suiteBtn').textContent='Running acceptance suite…';let p=4;el('progress').style.width='4%';const timer=setInterval(()=>{p=Math.min(88,p+7);el('progress').style.width=p+'%';},240);try{const data=await api('/api/tests',{method:'POST',body:'{}'});clearInterval(timer);el('progress').style.width='100%';state.lot=data.lot;state.traces=data.report.traces;renderMetrics();renderPlate();renderTrace();renderTests(data.report.results);el('suiteScore').textContent=`${data.report.passed} / ${data.report.total}`;addMessage('assistant',`Đã chạy xong bộ nghiệm thu: ${data.report.passed}/${data.report.total} test cases PASS. Bạn có thể xem chi tiết tiến trình ở Waterfall Trace.`);toast(`${data.report.passed}/${data.report.total} test cases passed.`);}catch(e){clearInterval(timer);addMessage('assistant',`Không thể chạy bộ kiểm thử: ${e.message}`,{meta:'ERROR'});toast(e.message);}finally{el('suiteBtn').disabled=false;el('suiteBtn').textContent='Run all five test cases';}};
+    el('suiteBtn').onclick=async()=>{el('suiteBtn').disabled=true;el('suiteBtn').textContent='Đang chạy bộ kiểm thử…';let p=4;el('progress').style.width='4%';const timer=setInterval(()=>{p=Math.min(88,p+7);el('progress').style.width=p+'%';},240);try{const data=await api('/api/tests',{method:'POST',body:'{}'});clearInterval(timer);el('progress').style.width='100%';state.lot=data.lot;state.traces=data.report.traces;renderMetrics();renderPlate();renderTrace();renderTests(data.report.results);el('suiteScore').textContent=`${data.report.passed} / ${data.report.total}`;addMessage('assistant',`Đã chạy xong bộ nghiệm thu: ${data.report.passed}/${data.report.total} test cases PASS. Bạn có thể xem chi tiết tiến trình ở Waterfall Trace.`);toast(`${data.report.passed}/${data.report.total} kịch bản đã đạt.`);}catch(e){clearInterval(timer);addMessage('assistant',`Không thể chạy bộ kiểm thử: ${e.message}`,{meta:'ERROR'});toast(e.message);}finally{el('suiteBtn').disabled=false;el('suiteBtn').textContent='Chạy 5 kịch bản kiểm thử';}};
     el('resetBtn').onclick=async()=>{const data=await api('/api/reset',{method:'POST',body:'{}'});state.lot=data.lot;state.traces=[];el('suiteScore').textContent='0 / 5';el('progress').style.width='0';renderMetrics();renderPlate();renderTrace();renderTests();resetChat();toast('Mock LIMS state restored.');};
     el('refreshBtn').onclick=refresh; el('copyBtn').onclick=async()=>{await navigator.clipboard.writeText(pretty(state.traces));toast('Trace JSON copied.');};
     el('query').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')el('sendBtn').click();}); refresh();

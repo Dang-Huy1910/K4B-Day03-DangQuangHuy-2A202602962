@@ -69,48 +69,98 @@ class MockOfflineProvider(BaseLLMProvider):
 
         if observations:
             last_tool, observation = observations[-1]
-            if last_tool == "mark_sample_fail":
-                if observation.get("status") == "SUCCESS":
-                    return {
-                        "type": "text",
-                        "content": (
-                            f"Đã hoàn tất kiểm soát chất lượng lô {observation.get('lot_id')}. "
-                            f"Mẫu {observation.get('sample_id')} đã chuyển sang FAILED với lý do: "
-                            f"{observation.get('failure_reason')}. Trạng thái lô vẫn là "
-                            f"{observation.get('lot_status')}; các mẫu đạt chuẩn khác không bị ảnh hưởng."
-                        ),
-                        "thought": "Thao tác cập nhật mẫu đã thành công; có thể tổng hợp kết quả mà không cần gọi thêm tool.",
-                    }
+            if last_tool == "query_extraction_lot" and observation.get("status") == "NOT_FOUND":
+                return {
+                    "type": "text",
+                    "content": observation.get("message", f"Không tìm thấy lô {lot_id} trong LIMS."),
+                    "thought": "LIMS trả về NOT_FOUND nên phải dừng và phản hồi lịch sự, không bịa dữ liệu.",
+                }
+
+            if last_tool == "mark_sample_fail" and observation.get("status") != "SUCCESS":
                 return {
                     "type": "text",
                     "content": observation.get("message", "Không thể đánh dấu lỗi cho mẫu theo yêu cầu."),
                     "thought": "Tool cập nhật không thành công; cần báo đúng trạng thái thay vì suy đoán.",
                 }
 
-            if last_tool == "query_extraction_lot":
-                if observation.get("status") == "NOT_FOUND":
-                    return {
-                        "type": "text",
-                        "content": observation.get("message", f"Không tìm thấy lô {lot_id} trong LIMS."),
-                        "thought": "LIMS trả về NOT_FOUND nên phải dừng và phản hồi lịch sự, không bịa dữ liệu.",
+            if is_conditional_qc:
+                query_observation = next(
+                    (
+                        item
+                        for tool_name, item in reversed(observations)
+                        if tool_name == "query_extraction_lot" and item.get("status") == "SUCCESS"
+                    ),
+                    None,
+                )
+                if query_observation:
+                    data = query_observation.get("data", {})
+                    samples = data.get("samples", [])
+                    low_samples = [
+                        sample
+                        for sample in samples
+                        if sample.get("status") == "LOW_YIELD"
+                        and float(sample.get("yield_ng_ul", 0)) < 10.0
+                    ]
+                    marked_ids = {
+                        item.get("sample_id")
+                        for tool_name, item in observations
+                        if tool_name == "mark_sample_fail" and item.get("status") == "SUCCESS"
                     }
+                    remaining_samples = [
+                        sample for sample in low_samples if sample.get("sample_id") not in marked_ids
+                    ]
+
+                    if remaining_samples:
+                        target = remaining_samples[0]
+                        target_yield = target.get("yield_ng_ul")
+                        return {
+                            "type": "tool_call",
+                            "tool_name": "mark_sample_fail",
+                            "arguments": {
+                                "lot_id": data.get("lot_id", lot_id),
+                                "sample_id": target.get("sample_id"),
+                                "reason": f"DNA yield {target_yield} ng/µL dưới ngưỡng SOP 10.0 ng/µL",
+                                "operator_name": "LabTech-2A202602962",
+                            },
+                            "thought": (
+                                f"Phát hiện {target.get('sample_id')} có yield {target_yield} ng/µL "
+                                "và đang LOW_YIELD; cần đánh dấu riêng mẫu này là FAILED."
+                            ),
+                        }
+
+                    processed_ids = [
+                        sample.get("sample_id")
+                        for sample in low_samples
+                        if sample.get("sample_id") in marked_ids
+                    ]
+                    if processed_ids:
+                        return {
+                            "type": "text",
+                            "content": (
+                                f"Đã hoàn tất kiểm soát chất lượng lô {data.get('lot_id', lot_id)}: "
+                                f"{len(processed_ids)} mẫu dưới ngưỡng SOP đã được chuyển sang FAILED "
+                                f"({', '.join(processed_ids)}). Trạng thái lô vẫn là "
+                                f"{observation.get('lot_status', data.get('status'))}; "
+                                "các mẫu đạt chuẩn khác không bị ảnh hưởng."
+                            ),
+                            "thought": "Tất cả mẫu LOW_YIELD đã được xử lý; có thể tổng hợp kết quả cuối cùng.",
+                        }
+
+            if last_tool == "mark_sample_fail":
+                return {
+                    "type": "text",
+                    "content": (
+                        f"Đã hoàn tất kiểm soát chất lượng lô {observation.get('lot_id')}. "
+                        f"Mẫu {observation.get('sample_id')} đã chuyển sang FAILED với lý do: "
+                        f"{observation.get('failure_reason')}. Trạng thái lô vẫn là "
+                        f"{observation.get('lot_status')}; các mẫu đạt chuẩn khác không bị ảnh hưởng."
+                    ),
+                    "thought": "Thao tác cập nhật mẫu đã thành công; có thể tổng hợp kết quả mà không cần gọi thêm tool.",
+                }
+
+            if last_tool == "query_extraction_lot":
                 data = observation.get("data", {})
                 samples = data.get("samples", [])
-                low_samples = [s for s in samples if float(s.get("yield_ng_ul", 0)) < 10.0]
-                if is_conditional_qc and low_samples:
-                    target = low_samples[0]
-                    target_yield = target.get("yield_ng_ul")
-                    return {
-                        "type": "tool_call",
-                        "tool_name": "mark_sample_fail",
-                        "arguments": {
-                            "lot_id": data.get("lot_id", lot_id),
-                            "sample_id": target.get("sample_id"),
-                            "reason": f"DNA yield {target_yield} ng/µL dưới ngưỡng SOP 10.0 ng/µL",
-                            "operator_name": "LabTech-2A202602962",
-                        },
-                        "thought": f"Phát hiện {target.get('sample_id')} có yield {target_yield} ng/µL dưới ngưỡng; cần đánh dấu riêng mẫu này là FAILED.",
-                    }
                 summary = data.get("summary", {})
                 sample_lines = "; ".join(
                     f"{s.get('sample_id')}: {s.get('yield_ng_ul')} ng/µL ({s.get('status')})"
