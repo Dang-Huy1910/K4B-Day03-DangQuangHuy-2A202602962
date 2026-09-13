@@ -91,7 +91,7 @@ DASHBOARD_HTML = r'''<!doctype html>
     .metric-icon { color:var(--dim); font:600 11px JetBrains Mono,monospace; }
     .metric-value { margin-top:13px; font:600 24px/1 JetBrains Mono,monospace; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
     .metric-note { margin-top:7px; color:var(--muted); font-size:11px; }
-    .workspace { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(340px,.6fr); gap:16px; align-items:start; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(400px,.75fr); gap:16px; align-items:start; }
     .panel { border:1px solid var(--line); background:rgba(255,255,255,.92); backdrop-filter:blur(14px); border-radius:var(--radius); box-shadow:0 8px 30px rgba(31,75,91,.055),inset 0 1px rgba(255,255,255,.95); overflow:hidden; }
     .panel-head { min-height:65px; padding:16px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:16px; }
     .panel-title { font-weight:650; letter-spacing:-.015em; }
@@ -123,8 +123,26 @@ DASHBOARD_HTML = r'''<!doctype html>
     .inspect-sub { color:var(--muted); font-size:11px; margin-top:4px; }
     .status-text { font:600 11px JetBrains Mono,monospace; }
     .passed-text { color:var(--emerald); } .failed-text { color:var(--rose); } .low_yield-text { color:var(--amber); }
-    .console-body { padding:18px; }
-    textarea { width:100%; min-height:112px; resize:vertical; border:1px solid var(--line-strong); border-radius:12px; padding:13px 14px; color:var(--text); background:#FBFDFE; line-height:1.55; transition:border-color 150ms,box-shadow 150ms; }
+    .chat-panel { position:sticky; top:16px; }
+    .chat-stream { height:330px; overflow-y:auto; padding:18px; border-bottom:1px solid var(--line); background:#F7FAFC; scroll-behavior:smooth; }
+    .message { display:flex; align-items:flex-end; gap:8px; margin-bottom:16px; animation:messageIn 220ms var(--ease); }
+    .message.user { justify-content:flex-end; }
+    @keyframes messageIn { from { opacity:0; transform:translateY(7px); } }
+    .avatar { flex:0 0 28px; width:28px; height:28px; display:grid; place-items:center; border:1px solid rgba(8,127,149,.16); border-radius:9px; color:var(--cyan); background:#E9F6F8; font:700 11px JetBrains Mono,monospace; }
+    .message.user .avatar { order:2; color:#FFFFFF; background:var(--cyan); border-color:var(--cyan); }
+    .message-stack { max-width:84%; }
+    .message.user .message-stack { display:flex; flex-direction:column; align-items:flex-end; }
+    .bubble { padding:11px 13px; border:1px solid var(--line); border-radius:14px 14px 14px 4px; color:#38535E; background:#FFFFFF; box-shadow:0 3px 10px rgba(31,75,91,.045); font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+    .bubble strong { color:var(--text); font-weight:650; }
+    .bubble code { padding:2px 4px; border-radius:4px; color:#076B7E; background:#E9F4F7; font:10px JetBrains Mono,monospace; }
+    .message.user .bubble { border-color:rgba(8,127,149,.18); border-radius:14px 14px 4px 14px; color:#164954; background:#E3F3F6; }
+    .message-meta { margin-top:4px; color:var(--dim); font:500 9px JetBrains Mono,monospace; }
+    .typing { display:flex; align-items:center; gap:4px; min-width:48px; min-height:37px; }
+    .typing i { width:5px; height:5px; border-radius:50%; background:#8CA0AA; animation:typing 1.2s infinite; }
+    .typing i:nth-child(2) { animation-delay:150ms; } .typing i:nth-child(3) { animation-delay:300ms; }
+    @keyframes typing { 50% { transform:translateY(-3px); background:var(--cyan); } }
+    .console-body { padding:16px 18px 18px; }
+    textarea { width:100%; min-height:78px; resize:vertical; border:1px solid var(--line-strong); border-radius:12px; padding:12px 13px; color:var(--text); background:#FBFDFE; line-height:1.5; transition:border-color 150ms,box-shadow 150ms; }
     textarea::placeholder { color:#8CA0AA; }
     textarea:hover { border-color:rgba(8,127,149,.3); }
     .quick { display:flex; gap:7px; flex-wrap:wrap; margin:12px 0 16px; }
@@ -169,7 +187,7 @@ DASHBOARD_HTML = r'''<!doctype html>
     .latency { color:var(--muted); font:500 10px JetBrains Mono,monospace; font-variant-numeric:tabular-nums; }
     .toast { position:fixed; right:24px; bottom:24px; max-width:360px; padding:12px 15px; border:1px solid var(--line-strong); border-radius:10px; background:#FFFFFF; box-shadow:0 16px 40px rgba(31,75,91,.16); transform:translateY(20px); opacity:0; pointer-events:none; transition:all 220ms var(--ease); }
     .toast.show { transform:none; opacity:1; }
-    @media (max-width:1000px) { .workspace { grid-template-columns:1fr; } .trace { grid-column:auto; } .metrics { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:1000px) { .workspace { grid-template-columns:1fr; } .trace { grid-column:auto; } .metrics { grid-template-columns:repeat(2,1fr); } .chat-panel { position:static; } }
     @media (max-width:620px) { .shell { width:calc(100% - 24px); padding-top:14px; } .hero { display:block; } .operator { text-align:left; margin-top:15px; } .metrics { grid-template-columns:1fr 1fr; } .metric { min-height:96px; padding:14px; } .plate-wrap { padding:14px; } .plate-frame { padding:26px 16px 18px 25px; border-radius:20px; } .plate-grid { grid-template-columns:repeat(8,minmax(25px,1fr)); gap:6px; } .legend { display:none; } .topbar .live span:last-child { display:none; } }
   </style>
 </head>
@@ -191,12 +209,15 @@ DASHBOARD_HTML = r'''<!doctype html>
         <header class="panel-head"><div><div class="panel-title">QIAvac Tray Visualizer</div><div class="panel-kicker" id="trayName">Loading instrument map…</div></div><span class="badge badge-progress" id="lotBadge">IN PROGRESS</span></header>
         <div class="plate-wrap"><div class="plate-meta"><span class="plate-id">LOT-EXT-2026-01</span><div class="legend"><span><i style="background:var(--emerald)"></i>PASSED</span><span><i style="background:var(--amber)"></i>LOW YIELD</span><span><i style="background:var(--rose)"></i>FAILED</span></div></div><div class="plate-frame"><div class="plate-grid" id="plateGrid"></div></div><div class="inspector" id="inspector"><div><div class="inspect-main">Select a populated well</div><div class="inspect-sub">Yield, specimen type and QC reason will appear here.</div></div></div></div>
       </article>
-      <aside class="panel">
-        <header class="panel-head"><div><div class="panel-title">ReAct Operator Console</div><div class="panel-kicker">Natural language · controlled execution</div></div><span class="badge badge-progress">READY</span></header>
-        <div class="console-body"><label class="label" for="query">Technician instruction</label><textarea id="query" placeholder="Ví dụ: Kiểm tra lô LOT-EXT-2026-01 và xử lý mẫu dưới ngưỡng SOP…"></textarea><div class="quick" id="quickPrompts"></div><div class="actions"><button class="button button-primary" id="sendBtn">Run ReAct agent</button><button class="button button-secondary" id="resetBtn" title="Khôi phục dữ liệu mock">Reset</button></div></div>
+      <aside class="panel chat-panel">
+        <header class="panel-head"><div><div class="panel-title">LIMS Agent Chat</div><div class="panel-kicker">Hỏi dữ liệu · nhận kết quả ngay tại đây</div></div><span class="badge badge-progress">READY</span></header>
+        <div class="chat-stream" id="chatStream" aria-live="polite">
+          <div class="message assistant"><div class="avatar">AI</div><div class="message-stack"><div class="bubble">Xin chào Kỹ thuật viên. Tôi có thể tra cứu lô, kiểm tra DNA yield và xử lý mẫu không đạt SOP qua MCP.</div><div class="message-meta">LIMS AGENT · READY</div></div></div>
+        </div>
+        <div class="console-body"><label class="label" for="query">Tin nhắn cho tác tử</label><textarea id="query" placeholder="Ví dụ: Kiểm tra LOT-EXT-2026-01 và đánh dấu mẫu dưới 10 ng/µL…"></textarea><div class="quick" id="quickPrompts"></div><div class="actions"><button class="button button-primary" id="sendBtn">Gửi yêu cầu ↗</button><button class="button button-secondary" id="resetBtn" title="Khôi phục dữ liệu mock">Reset</button></div></div>
         <div class="suite"><div class="suite-head"><span class="label">Acceptance suite</span><span class="latency" id="suiteScore">0 / 5</span></div><div class="progress-track"><div class="progress-fill" id="progress"></div></div><div class="suite-results" id="suiteResults"></div><button class="button button-secondary" id="suiteBtn" style="width:100%;margin-top:12px">Run all five test cases</button></div>
       </aside>
-      <article class="panel trace"><header class="panel-head"><div><div class="panel-title">ReAct Waterfall Trace</div><div class="panel-kicker">Thought → Action → Observation → Final Answer</div></div><div class="trace-tools"><button class="icon-button" id="refreshBtn" title="Refresh trace">↻</button><button class="icon-button" id="copyBtn" title="Copy trace JSON">⧉</button></div></header><div class="timeline" id="timeline"></div></article>
+      <article class="panel trace"><header class="panel-head"><div><div class="panel-title">ReAct Waterfall Trace</div><div class="panel-kicker">Execution only · Thought → Action → Observation → Delivery</div></div><div class="trace-tools"><button class="icon-button" id="refreshBtn" title="Refresh trace">↻</button><button class="icon-button" id="copyBtn" title="Copy trace JSON">⧉</button></div></header><div class="timeline" id="timeline"></div></article>
     </section>
   </main>
   <div class="toast" id="toast"></div>
@@ -205,6 +226,25 @@ DASHBOARD_HTML = r'''<!doctype html>
     let state = { lot: {}, traces: [], tests: [] };
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const pretty = obj => JSON.stringify(obj, null, 2);
+    const formatChat = value => esc(value)
+      .replace(/^#{1,3}\s+(.+)$/gm,'<strong>$1</strong>')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/`(.+?)`/g,'<code>$1</code>')
+      .replace(/^[-*]\s+/gm,'• ')
+      .replace(/\n/g,'<br>');
+    const timeLabel = () => new Intl.DateTimeFormat('vi-VN',{hour:'2-digit',minute:'2-digit'}).format(new Date());
+    function addMessage(role, content, options={}) {
+      const id=options.id||''; const isUser=role==='user';
+      const body=options.typing?'<div class="typing"><i></i><i></i><i></i></div>':formatChat(content);
+      const node=document.createElement('div'); node.className=`message ${role}`; if(id) node.id=id;
+      node.innerHTML=`<div class="avatar">${isUser?'KT':'AI'}</div><div class="message-stack"><div class="bubble">${body}</div><div class="message-meta">${isUser?'KỸ THUẬT VIÊN':'LIMS AGENT'} · ${options.meta||timeLabel()}</div></div>`;
+      el('chatStream').appendChild(node); el('chatStream').scrollTop=el('chatStream').scrollHeight;
+      return node;
+    }
+    function resetChat() {
+      el('chatStream').innerHTML='';
+      addMessage('assistant','Xin chào Kỹ thuật viên. Tôi có thể tra cứu lô, kiểm tra DNA yield và xử lý mẫu không đạt SOP qua MCP.',{meta:'READY'});
+    }
     const toast = message => { el('toast').textContent = message; el('toast').classList.add('show'); setTimeout(() => el('toast').classList.remove('show'), 2600); };
     async function api(path, options={}) { const res = await fetch(path, {headers:{'Content-Type':'application/json'},...options}); const data = await res.json(); if(!res.ok) throw new Error(data.error || 'Request failed'); return data; }
     function renderMetrics() {
@@ -233,15 +273,26 @@ DASHBOARD_HTML = r'''<!doctype html>
       const traces=state.traces||[]; if(!traces.length){el('timeline').innerHTML='<div class="empty-state">No trace recorded yet.<br>Run a prompt to inspect the agent decision path.</div>';return;}
       el('timeline').innerHTML=traces.map(t=>{ let cards=traceCard('thought','◈ Thought',esc(t.thought||'Evaluate next step'));
         if(t.action_type==='TOOL_EXECUTION'){cards+=traceCard('action','⌁ Action',`<span class="tool-name">${esc(t.tool_name)}</span>`,`${Number(t.llm_latency_ms||0).toFixed(2)} ms`,t.arguments); const status=t.observation?.status||'UNKNOWN'; cards+=traceCard('observation',`◎ Observation · ${esc(status)}`,esc(t.observation?.message||'Structured MCP response'),`${Number(t.tool_latency_ms||0).toFixed(2)} ms`,t.observation);}
-        else cards+=traceCard('final','⚑ Final Answer',esc(t.output||'').replace(/\n/g,'<br>'),`${Number(t.latency_ms||0).toFixed(2)} ms`);
+        else cards+=traceCard('final','⚑ Response delivered','Câu trả lời đầy đủ đã được chuyển tới khung LIMS Agent Chat.',`${Number(t.latency_ms||0).toFixed(2)} ms`);
         return `<section class="trace-group"><span class="trace-step">${t.step}</span>${cards}</section>`; }).join('');
     }
     function renderTests(results=[]) { const byId=new Map(results.map(r=>[r.id,r])); el('suiteResults').innerHTML=(state.tests||[]).map(t=>`<div class="test-pill ${byId.get(t.id)?.passed?'pass':''}" title="${esc(t.type)}">${t.id}${byId.get(t.id)?.passed?' ✓':''}</div>`).join(''); }
     function renderAll(){renderMetrics();renderPlate();renderTrace();renderTests();el('providerName').textContent=`${state.provider||'MCP'} ONLINE`;el('quickPrompts').innerHTML=(state.tests||[]).map(t=>`<button class="chip" data-id="${t.id}" title="${esc(t.question)}">${t.id}</button>`).join('');document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const t=state.tests.find(x=>x.id===b.dataset.id);el('query').value=t.question;el('query').focus();});}
     async function refresh(){try{state=await api('/api/state');renderAll();}catch(e){toast(e.message);}}
-    el('sendBtn').onclick=async()=>{const query=el('query').value.trim();if(!query){toast('Nhập chỉ dẫn cho tác tử trước khi chạy.');return;}el('sendBtn').disabled=true;el('sendBtn').textContent='Agent is reasoning…';try{const data=await api('/api/agent',{method:'POST',body:JSON.stringify({query})});state.lot=data.lot;state.traces=data.traces;renderMetrics();renderPlate();renderTrace();toast('ReAct cycle completed.');}catch(e){toast(e.message);}finally{el('sendBtn').disabled=false;el('sendBtn').textContent='Run ReAct agent';}};
-    el('suiteBtn').onclick=async()=>{el('suiteBtn').disabled=true;el('suiteBtn').textContent='Running acceptance suite…';let p=4;el('progress').style.width='4%';const timer=setInterval(()=>{p=Math.min(88,p+7);el('progress').style.width=p+'%';},240);try{const data=await api('/api/tests',{method:'POST',body:'{}'});clearInterval(timer);el('progress').style.width='100%';state.lot=data.lot;state.traces=data.report.traces;renderMetrics();renderPlate();renderTrace();renderTests(data.report.results);el('suiteScore').textContent=`${data.report.passed} / ${data.report.total}`;toast(`${data.report.passed}/${data.report.total} test cases passed.`);}catch(e){clearInterval(timer);toast(e.message);}finally{el('suiteBtn').disabled=false;el('suiteBtn').textContent='Run all five test cases';}};
-    el('resetBtn').onclick=async()=>{const data=await api('/api/reset',{method:'POST',body:'{}'});state.lot=data.lot;state.traces=[];el('suiteScore').textContent='0 / 5';el('progress').style.width='0';renderMetrics();renderPlate();renderTrace();renderTests();toast('Mock LIMS state restored.');};
+    el('sendBtn').onclick=async()=>{
+      const query=el('query').value.trim(); if(!query){toast('Nhập chỉ dẫn cho tác tử trước khi chạy.');return;}
+      addMessage('user',query); el('query').value=''; addMessage('assistant','',{id:'agentTyping',typing:true,meta:'ĐANG PHÂN TÍCH'});
+      el('sendBtn').disabled=true; el('sendBtn').textContent='Đang xử lý…';
+      try {
+        const data=await api('/api/agent',{method:'POST',body:JSON.stringify({query})});
+        el('agentTyping')?.remove(); addMessage('assistant',data.final_answer||'Tác tử đã hoàn tất nhưng chưa trả về nội dung tổng kết.');
+        state.lot=data.lot; state.traces=data.traces; renderMetrics(); renderPlate(); renderTrace(); toast('Chu trình ReAct đã hoàn tất.');
+      } catch(e) {
+        el('agentTyping')?.remove(); addMessage('assistant',`Không thể hoàn tất yêu cầu: ${e.message}`,{meta:'ERROR'}); toast(e.message);
+      } finally { el('sendBtn').disabled=false; el('sendBtn').textContent='Gửi yêu cầu ↗'; }
+    };
+    el('suiteBtn').onclick=async()=>{el('suiteBtn').disabled=true;el('suiteBtn').textContent='Running acceptance suite…';let p=4;el('progress').style.width='4%';const timer=setInterval(()=>{p=Math.min(88,p+7);el('progress').style.width=p+'%';},240);try{const data=await api('/api/tests',{method:'POST',body:'{}'});clearInterval(timer);el('progress').style.width='100%';state.lot=data.lot;state.traces=data.report.traces;renderMetrics();renderPlate();renderTrace();renderTests(data.report.results);el('suiteScore').textContent=`${data.report.passed} / ${data.report.total}`;addMessage('assistant',`Đã chạy xong bộ nghiệm thu: ${data.report.passed}/${data.report.total} test cases PASS. Bạn có thể xem chi tiết tiến trình ở Waterfall Trace.`);toast(`${data.report.passed}/${data.report.total} test cases passed.`);}catch(e){clearInterval(timer);addMessage('assistant',`Không thể chạy bộ kiểm thử: ${e.message}`,{meta:'ERROR'});toast(e.message);}finally{el('suiteBtn').disabled=false;el('suiteBtn').textContent='Run all five test cases';}};
+    el('resetBtn').onclick=async()=>{const data=await api('/api/reset',{method:'POST',body:'{}'});state.lot=data.lot;state.traces=[];el('suiteScore').textContent='0 / 5';el('progress').style.width='0';renderMetrics();renderPlate();renderTrace();renderTests();resetChat();toast('Mock LIMS state restored.');};
     el('refreshBtn').onclick=refresh; el('copyBtn').onclick=async()=>{await navigator.clipboard.writeText(pretty(state.traces));toast('Trace JSON copied.');};
     el('query').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')el('sendBtn').click();}); refresh();
   </script>
@@ -301,7 +352,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         return
                     traces = run_react_agent(query, PROVIDER, MCP_SERVER, verbose=False)
                     save_waterfall_trace(traces)
-                    self._send_json({"traces": traces, "lot": _lot_data()})
+                    final_answer = next(
+                        (
+                            event.get("output", "")
+                            for event in reversed(traces)
+                            if event.get("action_type") == "FINAL_ANSWER"
+                        ),
+                        "",
+                    )
+                    self._send_json(
+                        {"traces": traces, "final_answer": final_answer, "lot": _lot_data()}
+                    )
                 elif path == "/api/tests":
                     report = run_test_suite(PROVIDER, MCP_SERVER, reset_state=True, verbose=False)
                     self._send_json({"report": report, "lot": _lot_data()})
