@@ -12,7 +12,7 @@
 >
 > **Ngày nghiệm thu:** 13/09/2026
 >
-> **GitHub Repository:** [Dang-Huy1910/K4B-Day03-Lab-Chatbot-vs-ReAct-Agent-MCP](https://github.com/Dang-Huy1910/K4B-Day03-Lab-Chatbot-vs-ReAct-Agent-MCP)
+> **GitHub Repository:** [Dang-Huy1910/K4B-Day03-DangQuangHuy-2A202602962](https://github.com/Dang-Huy1910/K4B-Day03-DangQuangHuy-2A202602962)
 
 ---
 
@@ -23,7 +23,7 @@
 | **1. Multi-step Reasoning** | **5/5** | Tác tử phải thực hiện chuỗi suy luận: tra cứu lô → đọc nồng độ yield từng giếng → đối chiếu ngưỡng SOP 10 ng/µL → quyết định đánh dấu fail đúng mẫu. |
 | **2. Tool Interaction** | **5/5** | Bắt buộc truy cập dữ liệu LIMS qua MCP để lấy nồng độ thực tế. LLM đơn thuần có thể ảo giác DNA yield và tạo rủi ro lâm sàng. |
 | **3. Dynamic Decision** | **5/5** | Nhánh hành động được quyết định hoàn toàn tại runtime từ Observation: `NOT_FOUND` thì dừng an toàn; lô hợp lệ nhưng không có mẫu dưới ngưỡng thì chỉ tổng hợp; phát hiện yield < 10.0 ng/µL mới gọi `mark_sample_fail`. Safety gate còn ngăn mutation khi người dùng chỉ yêu cầu tra cứu. |
-| **4. Long Horizon Goal** | **5/5** | Tác tử duy trì mục tiêu kiểm soát chất lượng và ngữ cảnh lô xuyên suốt ba vòng ReAct, theo dõi trạng thái trước/sau mutation, bảo toàn trạng thái `IN_PROGRESS` và tính toàn vẹn của ba mẫu đạt chuẩn còn lại. |
+| **4. Long Horizon Goal** | **5/5** | Tác tử duy trì mục tiêu kiểm soát chất lượng và ngữ cảnh lô xuyên suốt ba vòng ReAct, theo dõi trạng thái trước/sau mutation, bảo toàn trạng thái `IN_PROGRESS` và tính toàn vẹn của 21 mẫu đạt chuẩn còn lại. |
 | **TỔNG ĐIỂM AGENTIC FIT** | **20/20** | **Bài toán đáp ứng đầy đủ bốn đặc trưng của một Agentic System.** |
 
 ---
@@ -35,7 +35,7 @@
 - Tool cập nhật: `mark_sample_fail(lot_id, sample_id, reason, operator_name)`.
 - SOP: DNA yield đạt chuẩn khi **≥ 10.0 ng/µL**; thấp hơn ngưỡng là `LOW_YIELD`.
 - Phạm vi cập nhật: chỉ mẫu được chọn chuyển sang `FAILED`; trạng thái lô và các mẫu đạt chuẩn khác được giữ nguyên.
-- Anti-hallucination: dữ liệu lô, yield và trạng thái chỉ được kết luận từ Observation của MCP.
+- Anti-hallucination: Final Answer được dựng từ Observation MCP đã xác thực; safety gate chặn mutation khi yêu cầu chỉ đọc, khi mẫu vốn đã `FAILED`, hoặc khi LLM đề xuất cập nhật lặp.
 
 ---
 
@@ -74,21 +74,20 @@ Trích xuất các trường nghiệm thu từ TC04, đồng bộ với artifact
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1228.99,
-    "tool_latency_ms": 2.25,
-    "latency_ms": 1231.24
+    "llm_latency_ms": 2097.7,
+    "tool_latency_ms": 2.77,
+    "latency_ms": 2100.47
   },
   {
     "step": 2,
     "action_type": "TOOL_EXECUTION",
-    "thought": "Gemini quyết định gọi công cụ 'mark_sample_fail' với tham số: {\"sample_id\": \"SMP-102\", \"operator_name\": \"LabTech-2A202602962\", \"reason\": \"DNA yield (4.8 ng/uL) thấp hơn ngưỡng chuẩn tối thiểu 10.0 ng/uL theo tiêu chuẩn SOP (LOW_YIELD).\", \"lot_id\": \"LOT-EXT-2026-01\"}",
+    "thought": "Gemini quyết định gọi công cụ 'mark_sample_fail' với tham số SMP-102 sau khi đọc Observation yield 4.8 ng/µL.",
     "provider": "gemini-3.5-flash-lite",
     "tool_name": "mark_sample_fail",
     "arguments": {
       "lot_id": "LOT-EXT-2026-01",
       "sample_id": "SMP-102",
-      "reason": "DNA yield (4.8 ng/uL) thấp hơn ngưỡng chuẩn tối thiểu 10.0 ng/uL theo tiêu chuẩn SOP (LOW_YIELD).",
-      "operator_name": "LabTech-2A202602962"
+      "reason": "Nồng độ DNA yield dưới ngưỡng tối thiểu SOP (< 10.0 ng/µL)"
     },
     "observation": {
       "status": "SUCCESS",
@@ -98,16 +97,16 @@ Trích xuất các trường nghiệm thu từ TC04, đồng bộ với artifact
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1867.13,
-    "tool_latency_ms": 0.15,
-    "latency_ms": 1867.28
+    "llm_latency_ms": 1115.14,
+    "tool_latency_ms": 0.24,
+    "latency_ms": 1115.38
   },
   {
     "step": 3,
     "action_type": "FINAL_ANSWER",
-    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
+    "thought": "Gemini kết thúc vòng lặp; Final Answer được dựng từ Observation MCP đã xác thực để ngăn sai lệch dữ liệu LIMS.",
     "provider": "gemini-3.5-flash-lite",
-    "latency_ms": 1868.48
+    "latency_ms": 4825.98
   }
 ]
 ```
@@ -146,8 +145,8 @@ Hệ thống đáp ứng đầy đủ mục tiêu Lab 3: phân biệt phản h�
 
 ## 6. Thông tin nộp bài
 
-- **Repository:** <https://github.com/Dang-Huy1910/K4B-Day03-Lab-Chatbot-vs-ReAct-Agent-MCP>
+- **Repository:** <https://github.com/Dang-Huy1910/K4B-Day03-DangQuangHuy-2A202602962>
 - **Nhánh nộp bài:** `main`
-- **Commit nghiệm thu:** `c48c916` — `feat: complete LIMS extraction ReAct agent lab`
+- **Commit nghiệm thu:** xem commit mới nhất trên nhánh `main` — toàn bộ mã nguồn, báo cáo và artifact Gemini được đồng bộ trong cùng bản nộp.
 - **Trạng thái source code:** Đã hoàn thiện và nghiệm thu 5/5 test cases.
 - **Thao tác cuối trên VLearn:** Dán URL repository ở trên vào ô nộp bài.

@@ -4,9 +4,9 @@
     "query": "Chào bạn, hãy cho biết tiêu chuẩn nồng độ DNA yield tối thiểu của quy trình tách chiết QIAamp trong phòng lab là bao nhiêu?",
     "action_type": "FINAL_ANSWER",
     "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
-    "output": "Chào bạn! Theo tiêu chuẩn SOP bắt buộc của phòng lab, nồng độ DNA yield tối thiểu đạt chuẩn cho quy trình tách chiết là **>= 10.0 ng/µL**. Các mẫu có nồng độ dưới mức này được định nghĩa là **LOW_YIELD** và cần phải được xử lý riêng.",
+    "output": "Chào bạn! Theo tiêu chuẩn SOP của phòng lab, nồng độ DNA yield tối thiểu đạt chuẩn là **$\\ge 10.0\\text{ ng/}\\mu\\text{L}$**. Các mẫu có giá trị dưới mức này sẽ được phân loại là **LOW_YIELD** và cần phải có biện pháp xử lý riêng theo quy định.",
     "provider": "gemini-3.5-flash-lite",
-    "latency_ms": 4472.88
+    "latency_ms": 3075.79
   },
   {
     "step": 1,
@@ -56,42 +56,187 @@
             "yield_ng_ul": 38.6,
             "status": "PASSED",
             "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-105",
+            "well": "A5",
+            "yield_ng_ul": 26.4,
+            "status": "PASSED",
+            "sample_type": "Plasma"
+          },
+          {
+            "sample_id": "SMP-106",
+            "well": "A6",
+            "yield_ng_ul": 31.8,
+            "status": "PASSED",
+            "sample_type": "Serum"
+          },
+          {
+            "sample_id": "SMP-107",
+            "well": "A7",
+            "yield_ng_ul": 14.6,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-108",
+            "well": "A8",
+            "yield_ng_ul": 17.3,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-109",
+            "well": "B1",
+            "yield_ng_ul": 22.7,
+            "status": "PASSED",
+            "sample_type": "Tissue"
+          },
+          {
+            "sample_id": "SMP-110",
+            "well": "B2",
+            "yield_ng_ul": 41.5,
+            "status": "PASSED",
+            "sample_type": "Plasma"
+          },
+          {
+            "sample_id": "SMP-111",
+            "well": "B3",
+            "yield_ng_ul": 16.2,
+            "status": "FAILED",
+            "sample_type": "Saliva",
+            "failure_reason": "Phát hiện nhiễm chéo tại giếng B3",
+            "failed_by": "LabTech-2A202602962"
+          },
+          {
+            "sample_id": "SMP-112",
+            "well": "B4",
+            "yield_ng_ul": 29.9,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-113",
+            "well": "B5",
+            "yield_ng_ul": 35.6,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-114",
+            "well": "B6",
+            "yield_ng_ul": 12.8,
+            "status": "PASSED",
+            "sample_type": "Saliva"
+          },
+          {
+            "sample_id": "SMP-115",
+            "well": "B7",
+            "yield_ng_ul": 18.9,
+            "status": "PASSED",
+            "sample_type": "Tissue"
+          },
+          {
+            "sample_id": "SMP-116",
+            "well": "B8",
+            "yield_ng_ul": 47.3,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-117",
+            "well": "C1",
+            "yield_ng_ul": 19.5,
+            "status": "PASSED",
+            "sample_type": "Serum"
+          },
+          {
+            "sample_id": "SMP-118",
+            "well": "C2",
+            "yield_ng_ul": 33.1,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-119",
+            "well": "C3",
+            "yield_ng_ul": 2.1,
+            "status": "FAILED",
+            "sample_type": "Plasma",
+            "failure_reason": "Mất thể tích mẫu trong bước rửa cột",
+            "failed_by": "LabTech-2A202602962"
+          },
+          {
+            "sample_id": "SMP-120",
+            "well": "C4",
+            "yield_ng_ul": 27.6,
+            "status": "PASSED",
+            "sample_type": "Tissue"
+          },
+          {
+            "sample_id": "SMP-121",
+            "well": "C5",
+            "yield_ng_ul": 44.0,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-122",
+            "well": "C6",
+            "yield_ng_ul": 16.4,
+            "status": "PASSED",
+            "sample_type": "Saliva"
+          },
+          {
+            "sample_id": "SMP-123",
+            "well": "C7",
+            "yield_ng_ul": 18.8,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-124",
+            "well": "C8",
+            "yield_ng_ul": 55.7,
+            "status": "PASSED",
+            "sample_type": "Tissue"
           }
         ],
         "sop_min_yield_ng_ul": 10.0,
         "summary": {
-          "total": 4,
-          "passed": 3,
+          "total": 24,
+          "passed": 21,
           "low_yield": 1,
-          "failed": 0
+          "failed": 2
         }
       }
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1465.93,
-    "tool_latency_ms": 3.95,
-    "latency_ms": 1469.88
+    "llm_latency_ms": 1732.07,
+    "tool_latency_ms": 3.33,
+    "latency_ms": 1735.4
   },
   {
     "step": 2,
     "query": "Kiểm tra thông tin chi tiết và danh sách mẫu của lô tách chiết LOT-EXT-2026-01.",
     "action_type": "FINAL_ANSWER",
-    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
-    "output": "**Final Answer:**\n\n- **Mã lô tách chiết:** `LOT-EXT-2026-01`\n- **Protocol:** QIAamp DNA Mini Kit\n- **Khay QIAvac:** QIAvac-Tray-A\n- **Tổng số mẫu:** 4 mẫu\n- **Chi tiết nồng độ DNA yield và trạng thái các mẫu:**\n  - `SMP-101` (Blood, well A1): 45.2 ng/µL — **PASSED** (Đạt chuẩn >= 10.0 ng/µL)\n  - `SMP-102` (Saliva, well A2): 4.8 ng/µL — **LOW_YIELD** (Dưới ngưỡng chuẩn 10.0 ng/µL, đã được hệ thống ghi nhận tách riêng)\n  - `SMP-103` (Tissue, well A3): 52.0 ng/µL — **PASSED** (Đạt chuẩn >= 10.0 ng/µL)\n  - `SMP-104` (Swab, well A4): 38.6 ng/µL — **PASSED** (Đạt chuẩn >= 10.0 ng/µL)\n- **Xác nhận trạng thái lô:** Lô hiện đang ở trạng thái `IN_PROGRESS` với 3 mẫu đạt chuẩn và 1 mẫu low yield (`SMP-102`) được xử lý tách riêng theo đúng tiêu chuẩn SOP. Toàn bộ các mẫu đạt chuẩn còn lại (`SMP-101`, `SMP-103`, `SMP-104`) được bảo toàn và không bị ảnh hưởng hay hủy bỏ.",
+    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ). Final Answer được dựng từ Observation MCP đã xác thực để ngăn sai lệch dữ liệu LIMS.",
+    "output": "Lô LOT-EXT-2026-01 — QIAamp DNA Mini Kit, khay QIAvac-Tray-A, trạng thái IN_PROGRESS, 24 mẫu. SMP-101: 45.2 ng/µL (PASSED); SMP-102: 4.8 ng/µL (LOW_YIELD); SMP-103: 52.0 ng/µL (PASSED); SMP-104: 38.6 ng/µL (PASSED); SMP-105: 26.4 ng/µL (PASSED); SMP-106: 31.8 ng/µL (PASSED); SMP-107: 14.6 ng/µL (PASSED); SMP-108: 17.3 ng/µL (PASSED); SMP-109: 22.7 ng/µL (PASSED); SMP-110: 41.5 ng/µL (PASSED); SMP-111: 16.2 ng/µL (FAILED); SMP-112: 29.9 ng/µL (PASSED); SMP-113: 35.6 ng/µL (PASSED); SMP-114: 12.8 ng/µL (PASSED); SMP-115: 18.9 ng/µL (PASSED); SMP-116: 47.3 ng/µL (PASSED); SMP-117: 19.5 ng/µL (PASSED); SMP-118: 33.1 ng/µL (PASSED); SMP-119: 2.1 ng/µL (FAILED); SMP-120: 27.6 ng/µL (PASSED); SMP-121: 44.0 ng/µL (PASSED); SMP-122: 16.4 ng/µL (PASSED); SMP-123: 18.8 ng/µL (PASSED); SMP-124: 55.7 ng/µL (PASSED)",
     "provider": "gemini-3.5-flash-lite",
-    "latency_ms": 3000.81
+    "latency_ms": 2522.9
   },
   {
     "step": 1,
     "query": "Hãy đánh dấu lỗi FAIL cho mẫu SMP-102 trong lô LOT-EXT-2026-01 với lý do mẫu bị đông vón hạt từ tính.",
     "action_type": "TOOL_EXECUTION",
-    "thought": "Gemini quyết định gọi công cụ 'mark_sample_fail' với tham số: {\"reason\": \"Mẫu bị đông vón hạt từ tính\", \"lot_id\": \"LOT-EXT-2026-01\", \"sample_id\": \"SMP-102\"}",
+    "thought": "Gemini quyết định gọi công cụ 'mark_sample_fail' với tham số: {\"operator_name\": \"LabTech-2A202602962\", \"lot_id\": \"LOT-EXT-2026-01\", \"reason\": \"Mẫu bị đông vón hạt từ tính\", \"sample_id\": \"SMP-102\"}",
     "provider": "gemini-3.5-flash-lite",
     "tool_name": "mark_sample_fail",
     "arguments": {
-      "reason": "Mẫu bị đông vón hạt từ tính",
+      "operator_name": "LabTech-2A202602962",
       "lot_id": "LOT-EXT-2026-01",
+      "reason": "Mẫu bị đông vón hạt từ tính",
       "sample_id": "SMP-102"
     },
     "observation": {
@@ -107,18 +252,18 @@
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1180.86,
-    "tool_latency_ms": 0.63,
-    "latency_ms": 1181.49
+    "llm_latency_ms": 1592.11,
+    "tool_latency_ms": 0.38,
+    "latency_ms": 1592.49
   },
   {
     "step": 2,
     "query": "Hãy đánh dấu lỗi FAIL cho mẫu SMP-102 trong lô LOT-EXT-2026-01 với lý do mẫu bị đông vón hạt từ tính.",
     "action_type": "FINAL_ANSWER",
-    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
-    "output": "**Final Answer:**\n\n- **Mã lô:** LOT-EXT-2026-01\n- **Mẫu xử lý:** SMP-102\n- **Trạng thái mẫu:** Đã cập nhật thành `FAILED` với lý do *\"Mẫu bị đông vón hạt từ tính\"* (thực hiện bởi `LabTech-2A202602962`).\n- **Trạng thái lô:** Vẫn được bảo toàn ở trạng thái `IN_PROGRESS`, các mẫu đạt chuẩn khác trong lô không bị ảnh hưởng hay hủy bỏ.",
+    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ). Final Answer được dựng từ Observation MCP đã xác thực để ngăn sai lệch dữ liệu LIMS.",
+    "output": "Đã đánh dấu FAILED cho mẫu SMP-102 thuộc lô LOT-EXT-2026-01. Lý do: Mẫu bị đông vón hạt từ tính. Lô vẫn ở trạng thái IN_PROGRESS; các mẫu còn lại không bị ảnh hưởng.",
     "provider": "gemini-3.5-flash-lite",
-    "latency_ms": 1774.5
+    "latency_ms": 2081.33
   },
   {
     "step": 1,
@@ -168,34 +313,177 @@
             "yield_ng_ul": 38.6,
             "status": "PASSED",
             "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-105",
+            "well": "A5",
+            "yield_ng_ul": 26.4,
+            "status": "PASSED",
+            "sample_type": "Plasma"
+          },
+          {
+            "sample_id": "SMP-106",
+            "well": "A6",
+            "yield_ng_ul": 31.8,
+            "status": "PASSED",
+            "sample_type": "Serum"
+          },
+          {
+            "sample_id": "SMP-107",
+            "well": "A7",
+            "yield_ng_ul": 14.6,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-108",
+            "well": "A8",
+            "yield_ng_ul": 17.3,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-109",
+            "well": "B1",
+            "yield_ng_ul": 22.7,
+            "status": "PASSED",
+            "sample_type": "Tissue"
+          },
+          {
+            "sample_id": "SMP-110",
+            "well": "B2",
+            "yield_ng_ul": 41.5,
+            "status": "PASSED",
+            "sample_type": "Plasma"
+          },
+          {
+            "sample_id": "SMP-111",
+            "well": "B3",
+            "yield_ng_ul": 16.2,
+            "status": "FAILED",
+            "sample_type": "Saliva",
+            "failure_reason": "Phát hiện nhiễm chéo tại giếng B3",
+            "failed_by": "LabTech-2A202602962"
+          },
+          {
+            "sample_id": "SMP-112",
+            "well": "B4",
+            "yield_ng_ul": 29.9,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-113",
+            "well": "B5",
+            "yield_ng_ul": 35.6,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-114",
+            "well": "B6",
+            "yield_ng_ul": 12.8,
+            "status": "PASSED",
+            "sample_type": "Saliva"
+          },
+          {
+            "sample_id": "SMP-115",
+            "well": "B7",
+            "yield_ng_ul": 18.9,
+            "status": "PASSED",
+            "sample_type": "Tissue"
+          },
+          {
+            "sample_id": "SMP-116",
+            "well": "B8",
+            "yield_ng_ul": 47.3,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-117",
+            "well": "C1",
+            "yield_ng_ul": 19.5,
+            "status": "PASSED",
+            "sample_type": "Serum"
+          },
+          {
+            "sample_id": "SMP-118",
+            "well": "C2",
+            "yield_ng_ul": 33.1,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-119",
+            "well": "C3",
+            "yield_ng_ul": 2.1,
+            "status": "FAILED",
+            "sample_type": "Plasma",
+            "failure_reason": "Mất thể tích mẫu trong bước rửa cột",
+            "failed_by": "LabTech-2A202602962"
+          },
+          {
+            "sample_id": "SMP-120",
+            "well": "C4",
+            "yield_ng_ul": 27.6,
+            "status": "PASSED",
+            "sample_type": "Tissue"
+          },
+          {
+            "sample_id": "SMP-121",
+            "well": "C5",
+            "yield_ng_ul": 44.0,
+            "status": "PASSED",
+            "sample_type": "Blood"
+          },
+          {
+            "sample_id": "SMP-122",
+            "well": "C6",
+            "yield_ng_ul": 16.4,
+            "status": "PASSED",
+            "sample_type": "Saliva"
+          },
+          {
+            "sample_id": "SMP-123",
+            "well": "C7",
+            "yield_ng_ul": 18.8,
+            "status": "PASSED",
+            "sample_type": "Swab"
+          },
+          {
+            "sample_id": "SMP-124",
+            "well": "C8",
+            "yield_ng_ul": 55.7,
+            "status": "PASSED",
+            "sample_type": "Tissue"
           }
         ],
         "sop_min_yield_ng_ul": 10.0,
         "summary": {
-          "total": 4,
-          "passed": 3,
+          "total": 24,
+          "passed": 21,
           "low_yield": 1,
-          "failed": 0
+          "failed": 2
         }
       }
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1228.99,
-    "tool_latency_ms": 2.25,
-    "latency_ms": 1231.24
+    "llm_latency_ms": 2097.7,
+    "tool_latency_ms": 2.77,
+    "latency_ms": 2100.47
   },
   {
     "step": 2,
     "query": "Kiểm tra lô LOT-EXT-2026-01, nếu phát hiện mẫu nào có nồng độ DNA yield dưới 10 ng/uL thì hãy tự động đánh dấu FAIL mẫu đó giúp tôi.",
     "action_type": "TOOL_EXECUTION",
-    "thought": "Gemini quyết định gọi công cụ 'mark_sample_fail' với tham số: {\"sample_id\": \"SMP-102\", \"operator_name\": \"LabTech-2A202602962\", \"reason\": \"DNA yield (4.8 ng/uL) thấp hơn ngưỡng chuẩn tối thiểu 10.0 ng/uL theo tiêu chuẩn SOP (LOW_YIELD).\", \"lot_id\": \"LOT-EXT-2026-01\"}",
+    "thought": "Gemini quyết định gọi công cụ 'mark_sample_fail' với tham số: {\"sample_id\": \"SMP-102\", \"reason\": \"Nồng độ DNA yield dưới ngưỡng tối thiểu SOP (< 10.0 ng/µL)\", \"lot_id\": \"LOT-EXT-2026-01\"}",
     "provider": "gemini-3.5-flash-lite",
     "tool_name": "mark_sample_fail",
     "arguments": {
       "sample_id": "SMP-102",
-      "operator_name": "LabTech-2A202602962",
-      "reason": "DNA yield (4.8 ng/uL) thấp hơn ngưỡng chuẩn tối thiểu 10.0 ng/uL theo tiêu chuẩn SOP (LOW_YIELD).",
+      "reason": "Nồng độ DNA yield dưới ngưỡng tối thiểu SOP (< 10.0 ng/µL)",
       "lot_id": "LOT-EXT-2026-01"
     },
     "observation": {
@@ -205,24 +493,24 @@
       "previous_status": "LOW_YIELD",
       "sample_status": "FAILED",
       "lot_status": "IN_PROGRESS",
-      "failure_reason": "DNA yield (4.8 ng/uL) thấp hơn ngưỡng chuẩn tối thiểu 10.0 ng/uL theo tiêu chuẩn SOP (LOW_YIELD).",
+      "failure_reason": "Nồng độ DNA yield dưới ngưỡng tối thiểu SOP (< 10.0 ng/µL)",
       "operator_name": "LabTech-2A202602962",
       "message": "Đã đánh dấu FAILED cho mẫu SMP-102; lô LOT-EXT-2026-01 vẫn giữ trạng thái IN_PROGRESS."
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1867.13,
-    "tool_latency_ms": 0.15,
-    "latency_ms": 1867.28
+    "llm_latency_ms": 1115.14,
+    "tool_latency_ms": 0.24,
+    "latency_ms": 1115.38
   },
   {
     "step": 3,
     "query": "Kiểm tra lô LOT-EXT-2026-01, nếu phát hiện mẫu nào có nồng độ DNA yield dưới 10 ng/uL thì hãy tự động đánh dấu FAIL mẫu đó giúp tôi.",
     "action_type": "FINAL_ANSWER",
-    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
-    "output": "**Final Answer:**\n\n- **Mã lô:** LOT-EXT-2026-01\n- **Protocol / Khay:** QIAamp DNA Mini Kit / QIAvac-Tray-A\n- **Tổng số mẫu:** 4 mẫu (loại mẫu: Blood, Saliva, Tissue, Swab)\n- **Chi tiết nồng độ DNA yield và trạng thái:**\n  - `SMP-101` (A1): 45.2 ng/µL — **PASSED**\n  - `SMP-102` (A2): 4.8 ng/µL (dưới ngưỡng chuẩn SOP 10.0 ng/µL) — **Đã tự động đánh dấu FAILED**\n  - `SMP-103` (A3): 52.0 ng/µL — **PASSED**\n  - `SMP-104` (A4): 38.6 ng/µL — **PASSED**\n\n**Xác nhận:** Mẫu `SMP-102` không đạt chuẩn (`LOW_YIELD`: 4.8 ng/µL) đã được hệ thống tự động cập nhật trạng thái thành **FAILED** theo đúng tiêu chuẩn SOP. Lô tách chiết `LOT-EXT-2026-01` vẫn được bảo toàn trạng thái (`IN_PROGRESS`), không bị hủy bỏ toàn bộ mẻ chạy, các mẫu đạt chuẩn còn lại tiếp tục được xử lý bình thường.",
+    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ). Final Answer được dựng từ Observation MCP đã xác thực để ngăn sai lệch dữ liệu LIMS.",
+    "output": "Lô LOT-EXT-2026-01 — protocol QIAamp DNA Mini Kit, khay QIAvac-Tray-A, tổng 24 mẫu. Đã chuyển sang FAILED: SMP-102, yield 4.8 ng/µL. Trạng thái lô vẫn là IN_PROGRESS; các mẫu đạt chuẩn khác không bị ảnh hưởng.",
     "provider": "gemini-3.5-flash-lite",
-    "latency_ms": 1868.48
+    "latency_ms": 4825.98
   },
   {
     "step": 1,
@@ -241,17 +529,17 @@
     },
     "server": "lims-extraction-mcp-server",
     "jsonrpc": "2.0",
-    "llm_latency_ms": 1530.15,
-    "tool_latency_ms": 3.05,
-    "latency_ms": 1533.2
+    "llm_latency_ms": 2996.92,
+    "tool_latency_ms": 0.68,
+    "latency_ms": 2997.6
   },
   {
     "step": 2,
     "query": "Tra cứu trạng thái của lô tách chiết LOT-EXT-9999-XX.",
     "action_type": "FINAL_ANSWER",
-    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
-    "output": "Dựa trên lịch sử xác thực từ LIMS, lô tách chiết **LOT-EXT-9999-XX** hiện không có trong hệ thống (trạng thái: `NOT_FOUND`). \n\nRất tiếc, tôi không tìm thấy thông tin cho mã lô này. Xin vui lòng kiểm tra lại mã lô tách chiết và thử lại.",
+    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ). Final Answer được dựng từ Observation MCP đã xác thực để ngăn sai lệch dữ liệu LIMS.",
+    "output": "Không tìm thấy lô tách chiết 'LOT-EXT-9999-XX' trong LIMS.",
     "provider": "gemini-3.5-flash-lite",
-    "latency_ms": 1841.35
+    "latency_ms": 2118.85
   }
 ]

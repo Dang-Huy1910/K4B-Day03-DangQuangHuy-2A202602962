@@ -94,6 +94,76 @@ def _fallback_answer(observation: Dict[str, Any]) -> str:
     ).strip()
 
 
+def _grounded_answer(history: List[Dict[str, Any]]) -> str:
+    """Render a final answer exclusively from verified MCP observations."""
+    observations = [event.get("observation", {}) for event in history]
+    last_observation = observations[-1] if observations else {}
+    if last_observation.get("status") == "NOT_FOUND":
+        return _fallback_answer(last_observation)
+
+    query_observation = next(
+        (
+            event.get("observation", {})
+            for event in reversed(history)
+            if event.get("tool_name") == "query_extraction_lot"
+            and event.get("observation", {}).get("status") == "SUCCESS"
+        ),
+        None,
+    )
+    successful_mutations = [
+        event.get("observation", {})
+        for event in history
+        if event.get("tool_name") == "mark_sample_fail"
+        and event.get("observation", {}).get("status") == "SUCCESS"
+    ]
+
+    if not successful_mutations:
+        return _fallback_answer(query_observation or last_observation)
+    if not query_observation:
+        return _fallback_answer(successful_mutations[-1])
+
+    data = query_observation.get("data", {})
+    samples_by_id = {
+        sample.get("sample_id"): sample for sample in data.get("samples", [])
+    }
+    processed = []
+    for mutation in successful_mutations:
+        sample_id = mutation.get("sample_id")
+        sample = samples_by_id.get(sample_id, {})
+        yield_value = sample.get("yield_ng_ul")
+        yield_text = f", yield {yield_value} ng/µL" if yield_value is not None else ""
+        processed.append(f"{sample_id}{yield_text}")
+
+    lot_status = successful_mutations[-1].get("lot_status", data.get("status"))
+    return (
+        f"Lô {data.get('lot_id')} — protocol {data.get('protocol')}, khay {data.get('tray')}, "
+        f"tổng {len(data.get('samples', []))} mẫu. Đã chuyển sang FAILED: "
+        f"{'; '.join(processed)}. Trạng thái lô vẫn là {lot_status}; "
+        "các mẫu đạt chuẩn khác không bị ảnh hưởng."
+    )
+
+
+def _is_known_failed_sample(history: List[Dict[str, Any]], sample_id: str) -> bool:
+    """Reject duplicate mutations using statuses already verified by MCP."""
+    normalized_id = str(sample_id or "").strip().upper()
+    for event in history:
+        observation = event.get("observation", {})
+        if event.get("tool_name") == "mark_sample_fail":
+            if (
+                observation.get("status") == "SUCCESS"
+                and str(observation.get("sample_id", "")).upper() == normalized_id
+            ):
+                return True
+        if event.get("tool_name") == "query_extraction_lot":
+            for sample in observation.get("data", {}).get("samples", []):
+                if (
+                    str(sample.get("sample_id", "")).upper() == normalized_id
+                    and sample.get("status") == "FAILED"
+                ):
+                    return True
+    return False
+
+
 def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbose: bool = True) -> list:
     """Execute a true multi-step Thought → Action → Observation loop."""
     if verbose:
@@ -132,6 +202,12 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbos
 
         if llm_response.get("type") == "text":
             final_content = str(llm_response.get("content", "")).strip()
+            if tool_history:
+                final_content = _grounded_answer(tool_history)
+                thought = (
+                    f"{thought} Final Answer được dựng từ Observation MCP đã xác thực "
+                    "để ngăn sai lệch dữ liệu LIMS."
+                )
             trace_logs.append(
                 {
                     "step": step,
@@ -198,6 +274,31 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbos
             )
             if verbose:
                 print(f"🛡️ [Safety Gate] {final_content}")
+            return trace_logs
+        if tool_name == "mark_sample_fail" and _is_known_failed_sample(
+            tool_history, arguments.get("sample_id", "")
+        ):
+            final_content = _grounded_answer(tool_history)
+            trace_logs.append(
+                {
+                    "step": step,
+                    "query": user_query,
+                    "action_type": "FINAL_ANSWER",
+                    "thought": (
+                        f"Safety gate chặn cập nhật lặp cho mẫu {arguments.get('sample_id')}: "
+                        "Observation MCP xác nhận mẫu đã FAILED."
+                    ),
+                    "output": final_content,
+                    "provider": response_provider,
+                    "latency_ms": llm_latency_ms,
+                }
+            )
+            if verbose:
+                print(
+                    f"🛡️ [Safety Gate] Bỏ qua mark_sample_fail cho "
+                    f"{arguments.get('sample_id')} vì mẫu đã FAILED."
+                )
+                print(f"🏁 [Final Answer] {final_content}")
             return trace_logs
         if verbose:
             print(f"🛠️ [Action] {tool_name}({json.dumps(arguments, ensure_ascii=False)})")
