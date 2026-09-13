@@ -94,7 +94,57 @@ def _fallback_answer(observation: Dict[str, Any]) -> str:
     ).strip()
 
 
-def _grounded_answer(history: List[Dict[str, Any]]) -> str:
+def _filtered_query_answer(observation: Dict[str, Any], user_query: str) -> str | None:
+    """Answer status-focused questions without dumping unrelated samples."""
+    data = observation.get("data", {})
+    samples = data.get("samples", [])
+    query_lower = user_query.lower()
+    non_pass_markers = (
+        "không pass",
+        "không đạt",
+        "chưa đạt",
+        "not pass",
+        "non-pass",
+        "bất thường",
+        "có vấn đề",
+    )
+    asks_non_pass = any(marker in query_lower for marker in non_pass_markers)
+    asks_low_yield = any(marker in query_lower for marker in ("low_yield", "low yield", "yield thấp"))
+    asks_failed = any(marker in query_lower for marker in ("đã fail", "failed", "thất bại", "bị lỗi"))
+
+    if asks_non_pass:
+        selected = [sample for sample in samples if sample.get("status") != "PASSED"]
+        category = "không PASS"
+    elif asks_low_yield:
+        selected = [sample for sample in samples if sample.get("status") == "LOW_YIELD"]
+        category = "LOW_YIELD"
+    elif asks_failed:
+        selected = [sample for sample in samples if sample.get("status") == "FAILED"]
+        category = "FAILED"
+    else:
+        return None
+
+    if not selected:
+        return (
+            f"Lô {data.get('lot_id')} không có mẫu {category}. "
+            f"Tổng số mẫu đã kiểm tra: {len(samples)}."
+        )
+
+    details = []
+    for sample in selected:
+        reason = sample.get("failure_reason")
+        reason_text = f", lý do: {reason}" if reason else ""
+        details.append(
+            f"{sample.get('sample_id')} (giếng {sample.get('well')}, "
+            f"yield {sample.get('yield_ng_ul')} ng/µL, {sample.get('status')}{reason_text})"
+        )
+    return (
+        f"Lô {data.get('lot_id')} có {len(selected)} mẫu {category} trên tổng "
+        f"{len(samples)} mẫu: {'; '.join(details)}. Trạng thái lô: {data.get('status')}."
+    )
+
+
+def _grounded_answer(history: List[Dict[str, Any]], user_query: str = "") -> str:
     """Render a final answer exclusively from verified MCP observations."""
     observations = [event.get("observation", {}) for event in history]
     last_observation = observations[-1] if observations else {}
@@ -118,6 +168,10 @@ def _grounded_answer(history: List[Dict[str, Any]]) -> str:
     ]
 
     if not successful_mutations:
+        if query_observation:
+            filtered_answer = _filtered_query_answer(query_observation, user_query)
+            if filtered_answer:
+                return filtered_answer
         return _fallback_answer(query_observation or last_observation)
     if not query_observation:
         return _fallback_answer(successful_mutations[-1])
@@ -203,7 +257,7 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbos
         if llm_response.get("type") == "text":
             final_content = str(llm_response.get("content", "")).strip()
             if tool_history:
-                final_content = _grounded_answer(tool_history)
+                final_content = _grounded_answer(tool_history, user_query)
                 thought = (
                     f"{thought} Final Answer được dựng từ Observation MCP đã xác thực "
                     "để ngăn sai lệch dữ liệu LIMS."
@@ -243,7 +297,7 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbos
         tool_name = llm_response.get("tool_name", "")
         arguments = llm_response.get("arguments") or {}
         if not mutation_authorised and tool_history:
-            final_content = _fallback_answer(tool_history[-1]["observation"])
+            final_content = _grounded_answer(tool_history, user_query)
             trace_logs.append(
                 {
                     "step": step,
@@ -278,7 +332,7 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbos
         if tool_name == "mark_sample_fail" and _is_known_failed_sample(
             tool_history, arguments.get("sample_id", "")
         ):
-            final_content = _grounded_answer(tool_history)
+            final_content = _grounded_answer(tool_history, user_query)
             trace_logs.append(
                 {
                     "step": step,
@@ -333,7 +387,11 @@ def run_react_agent(user_query: str, provider, mcp_server: MCPLIMSServer, verbos
         # Critical ReAct behaviour: never break immediately after an Observation.
         current_prompt = _next_prompt(user_query, tool_history)
 
-    final_content = _fallback_answer(tool_history[-1]["observation"] if tool_history else {})
+    final_content = (
+        _grounded_answer(tool_history, user_query)
+        if tool_history
+        else _fallback_answer({})
+    )
     trace_logs.append(
         {
             "step": MAX_ITERATIONS + 1,
