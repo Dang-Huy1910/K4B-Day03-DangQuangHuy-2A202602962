@@ -4,6 +4,8 @@ Hệ thống tác tử ReAct quản trị tách chiết DNA/RNA trong phòng lab
 
 Tác tử có thể tra cứu lô tách chiết qua MCP, đánh giá DNA yield theo SOP **≥ 10.0 ng/µL**, đánh dấu `FAILED` cho riêng mẫu không đạt và giữ nguyên các mẫu hợp lệ còn lại trong khay QIAvac.
 
+Final Answer được dựng từ Observation MCP đã xác thực. Safety gate chặn thao tác ghi khi người dùng chỉ yêu cầu tra cứu và ngăn cập nhật lặp lên mẫu đã `FAILED`.
+
 ## Quickstart
 
 Yêu cầu Python 3.10–3.12.
@@ -98,7 +100,7 @@ Các thành phần chính:
 | TC01 | Trả lời ngưỡng SOP | Không gọi tool |
 | TC02 | Tra cứu `LOT-EXT-2026-01` | `query_extraction_lot` |
 | TC03 | Fail riêng `SMP-102` | `mark_sample_fail` |
-| TC04 | Phát hiện và xử lý low yield | `query_extraction_lot` → `mark_sample_fail` |
+| TC04 | Phát hiện SMP-102 dưới ngưỡng và xử lý riêng mẫu | `query_extraction_lot` → `mark_sample_fail` |
 | TC05 | Xử lý lô không tồn tại | `query_extraction_lot` → `NOT_FOUND` |
 
 > Đây là mô hình đào tạo dùng dữ liệu giả lập, không phải hệ thống đưa ra quyết định lâm sàng trong môi trường sản xuất.

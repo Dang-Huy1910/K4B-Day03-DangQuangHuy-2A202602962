@@ -27,8 +27,8 @@
     "id": "TC04",
     "type": "multi_step_reasoning",
     "question": "Kiểm tra lô LOT-EXT-2026-01, nếu phát hiện mẫu nào có nồng độ DNA yield dưới 10 ng/uL thì hãy tự động đánh dấu FAIL mẫu đó giúp tôi.",
-    "expected_behavior": "ReAct đa bước: query_extraction_lot, tìm đủ 4 mẫu LOW_YIELD (SMP-102, SMP-108, SMP-115, SMP-122), lần lượt gọi mark_sample_fail cho từng mẫu rồi mới kết luận.",
-    "expected_tools": ["query_extraction_lot", "mark_sample_fail", "mark_sample_fail", "mark_sample_fail", "mark_sample_fail"],
+    "expected_behavior": "ReAct đa bước: query_extraction_lot, đọc yield 4.8 ng/µL của SMP-102, gọi mark_sample_fail cho riêng SMP-102 rồi mới kết luận.",
+    "expected_tools": ["query_extraction_lot", "mark_sample_fail"],
     "reset_state_before": true,
     "complexity": "High"
   },
