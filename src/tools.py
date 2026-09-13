@@ -1,118 +1,229 @@
-"""
-🛠️ TOOL DEFINITIONS & EXECUTION BACKEND
-Mã nguồn chứa danh sách Tool Schemas (JSON Schema) và Execution Layer phục vụ cho MCP Server.
+"""LIMS tool schemas and deterministic execution backend.
+
+The mock store is intentionally in-process so the CLI and dashboard can show
+that a ReAct action changes one sample without invalidating its extraction lot.
 """
 
+from __future__ import annotations
+
+import copy
 import json
-from typing import Dict, Any
+from threading import RLock
+from typing import Any, Dict
 
-# ==============================================================================
-# 1. KHAI BÁO TOOL SCHEMAS CHUẨN NATIVE JSON SCHEMA (TASK 1.2)
-# ==============================================================================
+
+SOP_MIN_YIELD_NG_UL = 10.0
+DEFAULT_OPERATOR = "LabTech-2A202602962"
 
 TOOLS_SCHEMA = [
-    # Tool 1: Đã được định nghĩa mẫu sẵn cho Học viên tham khảo
     {
-        "name": "academic_query",
-        "description": "Tra cứu hồ sơ và thông tin học vụ của sinh viên VinUni bằng mã sinh viên.",
+        "name": "query_extraction_lot",
+        "description": (
+            "Tra cứu thông tin trạng thái, giao thức, khay QIAvac và chi tiết "
+            "các mẫu (kèm nồng độ DNA yield) trong lô tách chiết LIMS."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
-                "student_id": {
+                "lot_id": {
                     "type": "string",
-                    "description": "Mã sinh viên cần tra cứu (ví dụ: 'SV2026001')"
+                    "description": "Mã lô tách chiết, ví dụ LOT-EXT-2026-01.",
                 }
             },
-            "required": ["student_id"]
-        }
+            "required": ["lot_id"],
+            "additionalProperties": False,
+        },
     },
-    
-    # --------------------------------------------------------------------------
-    # TODO 1.2: HỌC VIÊN HOÀN THIỆN TOOL SCHEMA CHO 'schedule_appointment'
-    # 🎯 YÊU CẦU THIẾT KẾ SCHEMA (JSON SCHEMA STANDARD):
-    # 1. Tool dùng để đặt lịch hẹn tư vấn học vụ với Cố vấn học tập VinUni.
-    # 2. Thiết kế các tham số (properties) để LLM trích xuất:
-    #    - student_id (string): Mã sinh viên cần đặt lịch (ví dụ: 'SV2026001')
-    #    - datetime_str (string): Thời gian hẹn (ví dụ: '14:00 15/09/2026')
-    #    - advisor_name (string): Tên cố vấn học tập
-    # 3. Khai báo danh sách các trường bắt buộc (required).
-    # --------------------------------------------------------------------------
     {
-        "name": "schedule_appointment",
-        "description": "Đặt lịch hẹn tư vấn học vụ với Cố vấn học tập VinUni.",
+        "name": "mark_sample_fail",
+        "description": (
+            "Đánh dấu lỗi/thất bại cho một mẫu xét nghiệm trong lô tách chiết "
+            "mà không hủy cả lô mẻ chạy."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
-                # TODO 1.2: Khai báo các thuộc tính tham số cho Tool tại đây...
+                "lot_id": {
+                    "type": "string",
+                    "description": "Mã lô chứa mẫu cần đánh dấu lỗi.",
+                },
+                "sample_id": {
+                    "type": "string",
+                    "description": "Mã mẫu xét nghiệm cần đánh dấu FAILED.",
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Lý do nghiệp vụ hoặc sự cố kỹ thuật gây lỗi mẫu.",
+                },
+                "operator_name": {
+                    "type": "string",
+                    "description": "Định danh kỹ thuật viên thực hiện thao tác.",
+                    "default": DEFAULT_OPERATOR,
+                },
             },
-            "required": [] # TODO 1.2: Khai báo danh sách các trường bắt buộc tại đây...
-        }
-    }
+            "required": ["lot_id", "sample_id", "reason"],
+            "additionalProperties": False,
+        },
+    },
 ]
 
-# ==============================================================================
-# 2. MÔ PHỎNG DỮ LIỆU & HÀM THỰC THI TOOL (EXECUTION LAYER)
-# ==============================================================================
 
-MOCK_DATABASE = {
-    "SV2026001": {
-        "full_name": "Nguyễn Văn An",
-        "class": "AI-K4",
-        "gpa": 3.85,
-        "email": "an.nv@vinuni.edu.vn",
-        "status": "Đang học",
-        "advisor": "PGS.TS Nguyễn Văn A"
+def _completed_samples() -> list[Dict[str, Any]]:
+    """Build a realistic 6 x 8 MagMAX tray containing 48 qualified samples."""
+    sample_types = ("Plasma", "Serum", "Swab", "Saliva")
+    samples = []
+    for index in range(48):
+        row, column = divmod(index, 8)
+        samples.append(
+            {
+                "sample_id": f"RNA-{index + 1:03d}",
+                "well": f"{chr(65 + row)}{column + 1}",
+                "yield_ng_ul": round(18.5 + (index % 9) * 2.35, 2),
+                "status": "PASSED",
+                "sample_type": sample_types[index % len(sample_types)],
+            }
+        )
+    return samples
+
+
+_INITIAL_DATABASE: Dict[str, Dict[str, Any]] = {
+    "LOT-EXT-2026-01": {
+        "lot_id": "LOT-EXT-2026-01",
+        "protocol": "QIAamp DNA Mini Kit",
+        "tray": "QIAvac-Tray-A",
+        "status": "IN_PROGRESS",
+        "capacity": 48,
+        "started_at": "2026-09-13T08:30:00+07:00",
+        "samples": [
+            {"sample_id": "SMP-101", "well": "A1", "yield_ng_ul": 45.2, "status": "PASSED", "sample_type": "Blood"},
+            {"sample_id": "SMP-102", "well": "A2", "yield_ng_ul": 4.8, "status": "LOW_YIELD", "sample_type": "Saliva"},
+            {"sample_id": "SMP-103", "well": "A3", "yield_ng_ul": 52.0, "status": "PASSED", "sample_type": "Tissue"},
+            {"sample_id": "SMP-104", "well": "A4", "yield_ng_ul": 38.6, "status": "PASSED", "sample_type": "Swab"},
+        ],
     },
-    "SV2026002": {
-        "full_name": "Trần Thị Bình",
-        "class": "AI-K4",
-        "gpa": 3.60,
-        "email": "binh.tt@vinuni.edu.vn",
-        "status": "Đang học",
-        "advisor": "TS. Lê Thị B"
+    "LOT-EXT-2026-02": {
+        "lot_id": "LOT-EXT-2026-02",
+        "protocol": "MagMAX Viral RNA",
+        "tray": "QIAvac-Tray-B",
+        "status": "COMPLETED",
+        "capacity": 48,
+        "completed_at": "2026-09-12T17:15:00+07:00",
+        "samples": _completed_samples(),
+    },
+}
+
+MOCK_DATABASE: Dict[str, Dict[str, Any]] = copy.deepcopy(_INITIAL_DATABASE)
+_DATABASE_LOCK = RLock()
+
+
+def reset_mock_database() -> None:
+    """Restore the fixture for repeatable CLI and dashboard test runs."""
+    with _DATABASE_LOCK:
+        MOCK_DATABASE.clear()
+        MOCK_DATABASE.update(copy.deepcopy(_INITIAL_DATABASE))
+
+
+def _normalise(value: str) -> str:
+    return str(value or "").strip().upper()
+
+
+def _lot_summary(lot: Dict[str, Any]) -> Dict[str, int]:
+    samples = lot["samples"]
+    return {
+        "total": len(samples),
+        "passed": sum(sample["status"] == "PASSED" for sample in samples),
+        "low_yield": sum(sample["status"] == "LOW_YIELD" for sample in samples),
+        "failed": sum(sample["status"] == "FAILED" for sample in samples),
     }
-}
 
 
-def execute_academic_query(student_id: str) -> str:
-    """Thực thi tra cứu học vụ theo mã sinh viên"""
-    student = MOCK_DATABASE.get(student_id.strip().upper())
-    if student:
-        return json.dumps({
-            "status": "SUCCESS",
-            "student_id": student_id,
-            "data": student
-        }, ensure_ascii=False)
-    else:
-        return json.dumps({
-            "status": "NOT_FOUND",
-            "message": f"Không tìm thấy dữ liệu sinh viên có mã '{student_id}'"
-        }, ensure_ascii=False)
+def execute_query_extraction_lot(lot_id: str) -> str:
+    """Return a snapshot of an extraction lot and its current QC summary."""
+    normalised_id = _normalise(lot_id)
+    with _DATABASE_LOCK:
+        lot = MOCK_DATABASE.get(normalised_id)
+        if lot is None:
+            result = {
+                "status": "NOT_FOUND",
+                "lot_id": normalised_id,
+                "message": f"Không tìm thấy lô tách chiết '{normalised_id}' trong LIMS.",
+            }
+        else:
+            data = copy.deepcopy(lot)
+            data["sop_min_yield_ng_ul"] = SOP_MIN_YIELD_NG_UL
+            data["summary"] = _lot_summary(lot)
+            result = {"status": "SUCCESS", "lot_id": normalised_id, "data": data}
+    return json.dumps(result, ensure_ascii=False)
 
 
-def execute_schedule_appointment(student_id: str, datetime_str: str, advisor_name: str = "PGS.TS Nguyễn Văn A") -> str:
-    """Thực thi đặt lịch hẹn tư vấn học vụ"""
-    return json.dumps({
-        "status": "SUCCESS",
-        "booking_id": f"BK-{student_id}-99",
-        "student_id": student_id,
-        "datetime": datetime_str,
-        "advisor": advisor_name,
-        "message": f"Đặt lịch thành công cho sinh viên {student_id} với {advisor_name} vào lúc {datetime_str}."
-    }, ensure_ascii=False)
+def execute_mark_sample_fail(
+    lot_id: str,
+    sample_id: str,
+    reason: str,
+    operator_name: str = DEFAULT_OPERATOR,
+) -> str:
+    """Fail one sample while preserving the status of its containing lot."""
+    normalised_lot_id = _normalise(lot_id)
+    normalised_sample_id = _normalise(sample_id)
+    clean_reason = str(reason or "").strip()
+    clean_operator = str(operator_name or DEFAULT_OPERATOR).strip() or DEFAULT_OPERATOR
+
+    if not clean_reason:
+        return json.dumps(
+            {"status": "VALIDATION_ERROR", "message": "Lý do đánh dấu lỗi không được để trống."},
+            ensure_ascii=False,
+        )
+
+    with _DATABASE_LOCK:
+        lot = MOCK_DATABASE.get(normalised_lot_id)
+        if lot is None:
+            result = {
+                "status": "NOT_FOUND",
+                "lot_id": normalised_lot_id,
+                "message": f"Không tìm thấy lô tách chiết '{normalised_lot_id}' trong LIMS.",
+            }
+        else:
+            sample = next((item for item in lot["samples"] if item["sample_id"] == normalised_sample_id), None)
+            if sample is None:
+                result = {
+                    "status": "NOT_FOUND",
+                    "lot_id": normalised_lot_id,
+                    "sample_id": normalised_sample_id,
+                    "message": f"Không tìm thấy mẫu '{normalised_sample_id}' trong lô '{normalised_lot_id}'.",
+                }
+            else:
+                previous_status = sample["status"]
+                sample["status"] = "FAILED"
+                sample["failure_reason"] = clean_reason
+                sample["failed_by"] = clean_operator
+                result = {
+                    "status": "SUCCESS",
+                    "lot_id": normalised_lot_id,
+                    "sample_id": normalised_sample_id,
+                    "previous_status": previous_status,
+                    "sample_status": "FAILED",
+                    "lot_status": lot["status"],
+                    "failure_reason": clean_reason,
+                    "operator_name": clean_operator,
+                    "message": f"Đã đánh dấu FAILED cho mẫu {normalised_sample_id}; lô {normalised_lot_id} vẫn giữ trạng thái {lot['status']}.",
+                }
+    return json.dumps(result, ensure_ascii=False)
 
 
-# Router gọi tool thực tế
 TOOL_ROUTER = {
-    "academic_query": execute_academic_query,
-    "schedule_appointment": execute_schedule_appointment
+    "query_extraction_lot": execute_query_extraction_lot,
+    "mark_sample_fail": execute_mark_sample_fail,
 }
+
 
 def dispatch_tool_call(tool_name: str, arguments: Dict[str, Any]) -> str:
-    """Hàm trung chuyển thực thi tool"""
-    if tool_name in TOOL_ROUTER:
-        try:
-            return TOOL_ROUTER[tool_name](**arguments)
-        except Exception as e:
-            return json.dumps({"status": "EXECUTION_ERROR", "error": str(e)}, ensure_ascii=False)
-    return json.dumps({"status": "UNKNOWN_TOOL", "error": f"Tool '{tool_name}' không tồn tại!"}, ensure_ascii=False)
+    """Dispatch a schema-compatible call and always return JSON text."""
+    executor = TOOL_ROUTER.get(tool_name)
+    if executor is None:
+        return json.dumps({"status": "UNKNOWN_TOOL", "error": f"Tool '{tool_name}' không tồn tại."}, ensure_ascii=False)
+    try:
+        return executor(**arguments)
+    except TypeError as exc:
+        return json.dumps({"status": "VALIDATION_ERROR", "error": str(exc)}, ensure_ascii=False)
+    except Exception as exc:
+        return json.dumps({"status": "EXECUTION_ERROR", "error": str(exc)}, ensure_ascii=False)

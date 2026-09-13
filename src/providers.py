@@ -6,6 +6,8 @@ Hỗ trợ Native Tool Calling và chuyển đổi linh hoạt qua biến môi t
 import os
 import sys
 import json
+import re
+import time
 from typing import Dict, Any, List
 from dotenv import load_dotenv
 
@@ -27,44 +29,140 @@ class BaseLLMProvider:
 
 
 class MockOfflineProvider(BaseLLMProvider):
-    """Offline Mock Provider dùng để chạy thử mà không tốn API Key"""
+    """Deterministic LIMS provider used for offline development and CI."""
     def __init__(self):
         self.model_name = "Offline-Mock-Model-2026"
 
     def generate(self, prompt: str, system_prompt: str = "") -> str:
-        return f"[Mock Chatbot Response]: Xin chào! Tôi đã nhận được câu hỏi '{prompt}'. (Chế độ Chatbot không có Tool tra cứu dữ liệu thời gian thực)."
+        if "yield" in prompt.lower() or "nồng độ" in prompt.lower():
+            return (
+                "Theo SOP QIAamp, DNA yield tối thiểu đạt chuẩn là 10.0 ng/µL. "
+                "Mẫu dưới ngưỡng này được phân loại LOW_YIELD."
+            )
+        return "Tôi có thể giải đáp SOP chung nhưng không truy cập dữ liệu lô thời gian thực ở chế độ Chatbot."
+
+    @staticmethod
+    def _identifier(pattern: str, prompt: str, fallback: str) -> str:
+        match = re.search(pattern, prompt, re.IGNORECASE)
+        return match.group(0).upper() if match else fallback
+
+    @staticmethod
+    def _observations(prompt: str) -> list[tuple[str, Dict[str, Any]]]:
+        observations = []
+        for line in prompt.splitlines():
+            if not line.startswith("[Observation từ Tool ") or "]: " not in line:
+                continue
+            heading, payload = line.split("]: ", 1)
+            tool_name = heading.removeprefix("[Observation từ Tool ")
+            try:
+                observations.append((tool_name, json.loads(payload)))
+            except json.JSONDecodeError:
+                continue
+        return observations
 
     def generate_with_tools(self, prompt: str, tools_schema: List[Dict[str, Any]], system_prompt: str = "") -> Dict[str, Any]:
         prompt_lower = prompt.lower()
-        
-        # Mô phỏng nhận diện intent gọi Tool
-        if "sv2026001" in prompt_lower and "đặt lịch" in prompt_lower:
+        lot_id = self._identifier(r"LOT-EXT-[A-Z0-9-]+", prompt, "LOT-EXT-2026-01")
+        sample_id = self._identifier(r"SMP-[A-Z0-9-]+", prompt, "SMP-102")
+        observations = self._observations(prompt)
+        is_conditional_qc = any(term in prompt_lower for term in ("tự động", "nếu phát hiện", "dưới 10", "thấp hơn 10"))
+
+        if observations:
+            last_tool, observation = observations[-1]
+            if last_tool == "mark_sample_fail":
+                if observation.get("status") == "SUCCESS":
+                    return {
+                        "type": "text",
+                        "content": (
+                            f"Đã hoàn tất kiểm soát chất lượng lô {observation.get('lot_id')}. "
+                            f"Mẫu {observation.get('sample_id')} đã chuyển sang FAILED với lý do: "
+                            f"{observation.get('failure_reason')}. Trạng thái lô vẫn là "
+                            f"{observation.get('lot_status')}; các mẫu đạt chuẩn khác không bị ảnh hưởng."
+                        ),
+                        "thought": "Thao tác cập nhật mẫu đã thành công; có thể tổng hợp kết quả mà không cần gọi thêm tool.",
+                    }
+                return {
+                    "type": "text",
+                    "content": observation.get("message", "Không thể đánh dấu lỗi cho mẫu theo yêu cầu."),
+                    "thought": "Tool cập nhật không thành công; cần báo đúng trạng thái thay vì suy đoán.",
+                }
+
+            if last_tool == "query_extraction_lot":
+                if observation.get("status") == "NOT_FOUND":
+                    return {
+                        "type": "text",
+                        "content": observation.get("message", f"Không tìm thấy lô {lot_id} trong LIMS."),
+                        "thought": "LIMS trả về NOT_FOUND nên phải dừng và phản hồi lịch sự, không bịa dữ liệu.",
+                    }
+                data = observation.get("data", {})
+                samples = data.get("samples", [])
+                low_samples = [s for s in samples if float(s.get("yield_ng_ul", 0)) < 10.0]
+                if is_conditional_qc and low_samples:
+                    target = low_samples[0]
+                    target_yield = target.get("yield_ng_ul")
+                    return {
+                        "type": "tool_call",
+                        "tool_name": "mark_sample_fail",
+                        "arguments": {
+                            "lot_id": data.get("lot_id", lot_id),
+                            "sample_id": target.get("sample_id"),
+                            "reason": f"DNA yield {target_yield} ng/µL dưới ngưỡng SOP 10.0 ng/µL",
+                            "operator_name": "LabTech-2A202602962",
+                        },
+                        "thought": f"Phát hiện {target.get('sample_id')} có yield {target_yield} ng/µL dưới ngưỡng; cần đánh dấu riêng mẫu này là FAILED.",
+                    }
+                summary = data.get("summary", {})
+                sample_lines = "; ".join(
+                    f"{s.get('sample_id')}: {s.get('yield_ng_ul')} ng/µL ({s.get('status')})"
+                    for s in samples
+                )
+                return {
+                    "type": "text",
+                    "content": (
+                        f"Lô {data.get('lot_id')} đang ở trạng thái {data.get('status')}, "
+                        f"protocol {data.get('protocol')}, khay {data.get('tray')}. "
+                        f"Có {summary.get('total', len(samples))} mẫu — {sample_lines}."
+                    ),
+                    "thought": "Đã có dữ liệu lô đầy đủ; tổng hợp số mẫu, yield và trạng thái khay cho kỹ thuật viên.",
+                }
+
+        if is_conditional_qc:
             return {
                 "type": "tool_call",
-                "tool_name": "schedule_appointment",
-                "arguments": {"student_id": "SV2026001", "datetime_str": "14:00 15/09/2026", "advisor_name": "PGS.TS Nguyễn Văn A"},
-                "thought": "Người dùng yêu cầu đặt lịch hẹn tư vấn cho sinh viên SV2026001. Tôi sẽ gọi tool schedule_appointment."
+                "tool_name": "query_extraction_lot",
+                "arguments": {"lot_id": lot_id},
+                "thought": "Cần tra cứu lô trước để quyết định mẫu nào thực sự dưới ngưỡng SOP 10.0 ng/µL.",
             }
-        elif "sv2026001" in prompt_lower or "tra cứu" in prompt_lower:
+
+        if "đánh dấu" in prompt_lower and ("fail" in prompt_lower or "lỗi" in prompt_lower):
+            reason = "Mẫu bị đông vón hạt từ tính" if "đông vón" in prompt_lower else "Lỗi mẫu theo xác nhận của kỹ thuật viên"
             return {
                 "type": "tool_call",
-                "tool_name": "academic_query",
-                "arguments": {"student_id": "SV2026001"},
-                "thought": "Người dùng muốn tra cứu thông tin học vụ của sinh viên SV2026001. Tôi sẽ gọi tool academic_query."
+                "tool_name": "mark_sample_fail",
+                "arguments": {"lot_id": lot_id, "sample_id": sample_id, "reason": reason, "operator_name": "LabTech-2A202602962"},
+                "thought": f"Kỹ thuật viên yêu cầu cập nhật trực tiếp mẫu {sample_id}; gọi mark_sample_fail nhưng không thay đổi trạng thái cả lô.",
             }
-        else:
+
+        if "tra cứu" in prompt_lower or "kiểm tra" in prompt_lower or lot_id in prompt:
             return {
-                "type": "text",
-                "content": f"[Mock Agent Response]: Xin chào! Quy chế học vụ VinUni yêu cầu sinh viên tích lũy tối thiểu 120 tín chỉ và duy trì GPA trên 2.0 để tốt nghiệp.",
-                "thought": "Câu hỏi chung về quy chế học vụ, trả lời trực tiếp không cần gọi Tool."
+                "type": "tool_call",
+                "tool_name": "query_extraction_lot",
+                "arguments": {"lot_id": lot_id},
+                "thought": f"Yêu cầu cần dữ liệu thực tế của {lot_id}; gọi query_extraction_lot để tránh suy đoán.",
             }
+
+        return {
+            "type": "text",
+            "content": "Theo SOP QIAamp, nồng độ DNA yield tối thiểu đạt chuẩn là 10.0 ng/µL; thấp hơn ngưỡng này được phân loại LOW_YIELD.",
+            "thought": "Đây là câu hỏi kiến thức SOP chung nên có thể trả lời trực tiếp, không cần gọi tool.",
+        }
 
 
 class GeminiProvider(BaseLLMProvider):
     """Google Gemini Provider (Native Tool Calling với Google GenAI SDK)"""
     def __init__(self, api_key: str = None, model: str = None):
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model_name = model or os.getenv("LLM_MODEL") or "gemini-2.5-flash"
+        self.model_name = model or os.getenv("LLM_MODEL") or "gemini-3.5-flash-lite"
 
     def generate(self, prompt: str, system_prompt: str = "") -> str:
         if not self.api_key or self.api_key == "your_gemini_api_key_here":
@@ -89,6 +187,18 @@ class GeminiProvider(BaseLLMProvider):
 
             client = genai.Client(api_key=self.api_key)
             
+            def gemini_compatible_schema(value):
+                """Remove valid JSON-Schema keywords not accepted by Gemini's subset."""
+                if isinstance(value, dict):
+                    return {
+                        key: gemini_compatible_schema(item)
+                        for key, item in value.items()
+                        if key not in {"additionalProperties", "$schema"}
+                    }
+                if isinstance(value, list):
+                    return [gemini_compatible_schema(item) for item in value]
+                return value
+
             # Chuẩn hóa function declarations cho Gemini SDK
             function_declarations = []
             for tool in tools_schema:
@@ -98,7 +208,7 @@ class GeminiProvider(BaseLLMProvider):
                 function_declarations.append({
                     "name": tool["name"],
                     "description": tool.get("description", ""),
-                    "parameters": tool.get("parameters", {})
+                    "parameters": gemini_compatible_schema(tool.get("parameters", {}))
                 })
 
             config = types.GenerateContentConfig(
@@ -107,11 +217,27 @@ class GeminiProvider(BaseLLMProvider):
                 temperature=0.2
             )
 
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=config
-            )
+            for attempt in range(2):
+                try:
+                    response = client.models.generate_content(
+                        model=self.model_name,
+                        contents=prompt,
+                        config=config,
+                    )
+                    break
+                except Exception as api_error:
+                    error_text = str(api_error)
+                    if (
+                        attempt == 0
+                        and "429 RESOURCE_EXHAUSTED" in error_text
+                        and "GenerateRequestsPerDay" not in error_text
+                    ):
+                        retry_match = re.search(r"retryDelay['\": ]+([0-9]+)s", error_text)
+                        retry_seconds = min(int(retry_match.group(1)) + 2 if retry_match else 50, 60)
+                        print(f"⏳ [Gemini Rate Limit]: Chờ {retry_seconds}s theo RetryInfo rồi gọi lại API thật...")
+                        time.sleep(retry_seconds)
+                        continue
+                    raise
 
             # Kiểm tra xem Gemini có trả về Tool Call không
             if response.function_calls:
@@ -121,18 +247,22 @@ class GeminiProvider(BaseLLMProvider):
                     "type": "tool_call",
                     "tool_name": call.name,
                     "arguments": args,
-                    "thought": f"Gemini quyết định gọi công cụ '{call.name}' với tham số: {json.dumps(args, ensure_ascii=False)}"
+                    "thought": f"Gemini quyết định gọi công cụ '{call.name}' với tham số: {json.dumps(args, ensure_ascii=False)}",
+                    "provider": self.model_name,
                 }
             else:
                 return {
                     "type": "text",
                     "content": response.text or "",
-                    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ)."
+                    "thought": "Gemini phản hồi trực tiếp bằng văn bản (không cần gọi công cụ).",
+                    "provider": self.model_name,
                 }
 
         except Exception as e:
             print(f"⚠️ [Gemini API Warning]: Không thể kết nối live API ({str(e)}). Tự động fallback về Mock.")
-            return MockOfflineProvider().generate_with_tools(prompt, tools_schema, system_prompt)
+            fallback = MockOfflineProvider().generate_with_tools(prompt, tools_schema, system_prompt)
+            fallback["provider"] = "MockOfflineProvider (fallback)"
+            return fallback
 
 
 class OpenAIProvider(BaseLLMProvider):

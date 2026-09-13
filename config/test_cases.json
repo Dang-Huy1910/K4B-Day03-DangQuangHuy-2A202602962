@@ -1,0 +1,43 @@
+[
+  {
+    "id": "TC01",
+    "type": "direct_query",
+    "question": "Chào bạn, hãy cho biết tiêu chuẩn nồng độ DNA yield tối thiểu của quy trình tách chiết QIAamp trong phòng lab là bao nhiêu?",
+    "expected_behavior": "Chatbot/Agent trả lời trực tiếp ngưỡng SOP 10.0 ng/µL, không gọi Tool.",
+    "expected_tools": [],
+    "complexity": "Low"
+  },
+  {
+    "id": "TC02",
+    "type": "single_tool_query",
+    "question": "Kiểm tra thông tin chi tiết và danh sách mẫu của lô tách chiết LOT-EXT-2026-01.",
+    "expected_behavior": "Gọi query_extraction_lot với lot_id LOT-EXT-2026-01 và tổng hợp protocol, khay, yield, trạng thái mẫu.",
+    "expected_tools": ["query_extraction_lot"],
+    "complexity": "Medium"
+  },
+  {
+    "id": "TC03",
+    "type": "single_action",
+    "question": "Hãy đánh dấu lỗi FAIL cho mẫu SMP-102 trong lô LOT-EXT-2026-01 với lý do mẫu bị đông vón hạt từ tính.",
+    "expected_behavior": "Gọi mark_sample_fail cho riêng SMP-102 và giữ nguyên trạng thái của lô.",
+    "expected_tools": ["mark_sample_fail"],
+    "complexity": "Medium"
+  },
+  {
+    "id": "TC04",
+    "type": "multi_step_reasoning",
+    "question": "Kiểm tra lô LOT-EXT-2026-01, nếu phát hiện mẫu nào có nồng độ DNA yield dưới 10 ng/uL thì hãy tự động đánh dấu FAIL mẫu đó giúp tôi.",
+    "expected_behavior": "ReAct đa bước: query_extraction_lot, đọc yield 4.8 ng/µL của SMP-102, rồi gọi mark_sample_fail và kết luận.",
+    "expected_tools": ["query_extraction_lot", "mark_sample_fail"],
+    "reset_state_before": true,
+    "complexity": "High"
+  },
+  {
+    "id": "TC05",
+    "type": "edge_case_handling",
+    "question": "Tra cứu trạng thái của lô tách chiết LOT-EXT-9999-XX.",
+    "expected_behavior": "Nhận NOT_FOUND từ query_extraction_lot và phản hồi lịch sự, không bịa dữ liệu.",
+    "expected_tools": ["query_extraction_lot"],
+    "complexity": "Medium"
+  }
+]
